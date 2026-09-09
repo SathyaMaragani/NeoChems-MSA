@@ -186,3 +186,81 @@ export type Health = {
 }
 
 export const retroHealth = () => request<Health>('/retrosynthesis/health', undefined, 5_000)
+
+// --- QSAR property prediction ----------------------------------------------
+
+export type CoverageRow = {
+  alpha: number
+  nominal: number
+  /** Measured on held-out data, not the nominal label. */
+  empirical: number
+  /** Wilson 95% CI: coverage is itself an estimate from n_test molecules. */
+  empirical_ci_95: number[]
+  n_test: number
+  mean_width: number
+}
+
+export type PropertyModel = {
+  model: string
+  description: string
+  test_rmse: number
+  test_mae: number
+  test_r2: number
+  coverage: CoverageRow[]
+}
+
+export type PropertySpec = {
+  property: string
+  units: string
+  description: string
+  dataset: string
+  default_model: string
+  task_type: string
+  calibrated_alphas: number[]
+  models: PropertyModel[]
+}
+
+export type PredictionInterval = {
+  lower: number
+  upper: number
+  alpha: number
+  nominal_coverage: number
+  method: string
+  empirical_coverage: number
+  empirical_coverage_ci_95: number[]
+  n_calibration: number
+  n_test: number
+  note: string
+}
+
+export type Prediction = {
+  property: string
+  predicted_value: number
+  units: string
+  model_used: string
+  model_performance: {
+    test_rmse: number
+    test_mae: number
+    test_r2: number
+    split: string
+    note: string
+  }
+  prediction_interval: PredictionInterval
+  applicability: {
+    max_train_similarity: number
+    structurally_familiar: boolean
+    threshold: number
+    nearest_training_smiles: string[]
+    note: string
+  }
+}
+
+export const listProperties = () =>
+  request<{ properties: PropertySpec[] }>('/predict/properties')
+
+export const predictProperty = (
+  smiles: string,
+  property: string,
+  model: string | undefined,
+  alpha: number,
+) => post<Prediction>('/predict/property', { smiles, property, model, alpha })

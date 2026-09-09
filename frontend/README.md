@@ -39,11 +39,46 @@ Structure editor on the left, action tabs on the right. The current SMILES is
 lifted state in `App.tsx` and shared by all three tabs — draw or paste once, then
 switch tabs freely without re-entering the molecule.
 
+Covers **3 of 3** backend modules.
+
 | Tab | Endpoint |
 |---|---|
 | **Represent** | `POST /molecules/represent` — canonical SMILES, InChIKey, MW, depiction. No database. Start here to confirm the editor is producing what you expect. |
 | **Retrosynthesis** | `POST /retrosynthesis/plan` — routes with images, scores, per-step templates. |
 | **Search** | `POST /search/exact`, `/search/similarity`, `/search/substructure` |
+| **Properties** | `GET /predict/properties`, `POST /predict/property` — solubility with a conformal prediction interval. |
+
+## The Properties tab shows measured coverage, not nominal
+
+Everything selectable is populated from `GET /predict/properties` — properties,
+models, and the calibrated alpha list. Nothing is hardcoded, so a new property
+appears in the dropdowns without a frontend change.
+
+The confidence selector deliberately labels each option with its **measured**
+coverage:
+
+```
+alpha = 0.05 - measured 92% coverage
+alpha = 0.1  - measured 81% coverage
+alpha = 0.2  - measured 68% coverage
+```
+
+A dropdown offering "90%" would undo the backend's honesty work: intervals
+under-cover their nominal label because of the scaffold split. The measured
+figure carries its own 95% CI (n = 113) beside it, because coverage is itself an
+estimate.
+
+Two other display choices worth keeping:
+
+- The interval is drawn as a **bar** with the point estimate marked, not just two
+  numbers. A +/-1.3 log-unit range reads as abstract in text and obvious as a bar.
+- `structurally_familiar` is labelled **"structural similarity to training data"**
+  with a caption saying it does *not* predict accuracy. Calibration measured that
+  directly and found no relationship (p = 0.44), so presenting it as a confidence
+  signal would be false.
+
+The "not experimentally validated" caption is permanent and not dismissible - the
+person reading a number in a browser is not the person who read the README.
 
 ## Editor and SMILES field
 

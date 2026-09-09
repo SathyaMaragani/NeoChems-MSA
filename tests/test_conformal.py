@@ -153,11 +153,77 @@ def test_empirical_coverage_on_test_set_matches_what_the_api_reports():
 
     for alpha in CALIBRATED_ALPHAS:
         recomputed = float((residuals <= calibration.quantiles[alpha]).mean())
+        # Stored coverage is rounded to 2 dp on purpose - n=113 cannot support
+        # more - so the tolerance is half of that last place, not 1e-3.
         assert recomputed == pytest.approx(
-            calibration.empirical_coverage[alpha], abs=1e-3
+            calibration.empirical_coverage[alpha], abs=0.005
         )
         low, high = MEASURED_COVERAGE_BOUNDS[alpha]
         assert low <= recomputed <= high, (
             f"coverage {recomputed:.3f} at alpha={alpha} outside the documented "
             f"scaffold-split band [{low}, {high}]"
         )
+
+
+# --- coverage is itself an estimate, and must carry its own uncertainty -------
+
+
+def test_wilson_interval_brackets_the_point_estimate():
+    from backend.qsar.conformal import wilson_interval
+
+    for successes, n in [(92, 113), (81, 113), (68, 113), (1, 10), (9, 10)]:
+        low, high = wilson_interval(successes, n)
+        assert low <= successes / n <= high
+        assert 0.0 <= low < high <= 1.0
+
+
+def test_wilson_interval_width_is_plausible_at_n_113():
+    """At n=113 a proportion near 0.8 carries roughly +/-0.07 of sampling error.
+    A much tighter interval would mean the CI is not being computed at all."""
+    from backend.qsar.conformal import wilson_interval
+
+    low, high = wilson_interval(92, 113)  # 0.81
+    width = high - low
+    assert 0.10 < width < 0.20, f"CI width {width:.3f} implausible for n=113"
+
+
+def test_wilson_interval_narrows_as_n_grows():
+    from backend.qsar.conformal import wilson_interval
+
+    small = wilson_interval(80, 100)
+    large = wilson_interval(8000, 10000)
+    assert (large[1] - large[0]) < (small[1] - small[0])
+
+
+def test_reported_coverage_is_not_over_precise(client):
+    """0.8142 on 113 molecules claims precision the sample cannot support."""
+    bounds = interval(client, alpha=0.1)
+    coverage = bounds["empirical_coverage"]
+    assert coverage == round(coverage, 2), "coverage rounded beyond what n supports"
+    low, high = bounds["empirical_coverage_ci_95"]
+    assert low <= coverage <= high
+    assert bounds["n_test"] > 0
+    assert "95% CI" in bounds["note"]
+
+
+def test_coverage_list_carries_confidence_intervals(client):
+    body = client.get("/predict/properties").json()
+    solubility = next(p for p in body["properties"] if p["property"] == "solubility")
+    served = next(m for m in solubility["models"] if m["model"] == "baseline")
+    for row in served["coverage"]:
+        low, high = row["empirical_ci_95"]
+        assert low <= row["empirical"] <= high
+        assert row["n_test"] == 113
+
+
+def test_adjacent_coverage_rows_overlap_within_sampling_error(client):
+    """Documents why the coverage table is a lookup, not evidence that one alpha
+    is significantly better covered than the next: at n=113 the CIs overlap."""
+    body = client.get("/predict/properties").json()
+    solubility = next(p for p in body["properties"] if p["property"] == "solubility")
+    served = next(m for m in solubility["models"] if m["model"] == "baseline")
+    rows = sorted(served["coverage"], key=lambda r: r["alpha"])
+    a, b = rows[0], rows[1]  # alpha 0.05 vs 0.10
+    assert a["empirical_ci_95"][0] <= b["empirical_ci_95"][1], (
+        "CIs no longer overlap - the README claim about sampling error needs revisiting"
+    )

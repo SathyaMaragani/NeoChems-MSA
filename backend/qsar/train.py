@@ -22,7 +22,12 @@ from pathlib import Path
 import numpy as np
 
 from backend.qsar.baseline import FEATURIZERS, evaluate, labels_of, make_models
-from backend.qsar.conformal import ALPHAS, Calibration, conformal_quantile
+from backend.qsar.conformal import (
+    ALPHAS,
+    Calibration,
+    conformal_quantile,
+    wilson_interval,
+)
 from backend.qsar.dataset import load
 from backend.qsar.splits import scaffold_split
 
@@ -99,20 +104,26 @@ def main() -> int:
             method="plain",
             quantiles={a: conformal_quantile(cal_residuals, a) for a in ALPHAS},
             n_calibration=len(cal_residuals),
+            n_test=len(test_smiles),
         )
 
         # Coverage is MEASURED on the untouched test set, never assumed from alpha.
         test_residuals = np.abs(y_test - estimator.predict(featurizer(test_smiles)))
         for alpha in ALPHAS:
             half = calibration.quantiles[alpha]
-            calibration.empirical_coverage[alpha] = round(
-                float((test_residuals <= half).mean()), 4
-            )
+            covered = int((test_residuals <= half).sum())
+            n = len(test_residuals)
+            # Two decimals: a third would imply precision n=113 cannot support.
+            calibration.empirical_coverage[alpha] = round(covered / n, 2)
+            low, high = wilson_interval(covered, n)
+            calibration.coverage_ci[alpha] = (round(low, 2), round(high, 2))
             calibration.mean_width[alpha] = round(2 * half, 4)
         conformal[name] = calibration
 
         coverage = "  ".join(
-            f"a={a}: {calibration.empirical_coverage[a]:.3f}" for a in ALPHAS
+            f"a={a}: {calibration.empirical_coverage[a]:.2f} "
+            f"[{calibration.coverage_ci[a][0]:.2f},{calibration.coverage_ci[a][1]:.2f}]"
+            for a in ALPHAS
         )
         print(f"  {name:12s} {scores}   coverage {coverage}")
 

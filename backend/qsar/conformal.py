@@ -5,10 +5,10 @@ measurable relationship to error, so the only error information in a prediction
 was a single global RMSE, identical for every molecule. Conformal gives an
 interval with a finite-sample marginal coverage guarantee instead.
 
-IMPORTANT - the served artifact from train.py is fit on train+val, so val is
-in-sample for it and useless as a calibration set (residuals there are ~6.8x
-smaller than held-out error). Everything here refits on TRAIN ONLY so that val is
-genuinely held out. The test set is never touched except to measure coverage.
+This module is the plain-vs-normalized comparison bench; train.py builds the
+served artifact. Both fit on TRAIN ONLY so val is a genuine calibration set - an
+earlier train.py fit on train+val, which made val in-sample and would have given
+intervals 6.8x too narrow. The test set is only ever touched to measure coverage.
 
     python -m backend.qsar.conformal
 """
@@ -37,6 +37,23 @@ BETA = 0.1
 KNN_K = 5
 
 
+def wilson_interval(successes: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """Wilson score interval for a binomial proportion.
+
+    Coverage is itself an estimate from n test molecules. At n=113 the sampling
+    error is roughly +/-0.07, so reporting 0.8142 asserts a precision that is not
+    there. Wilson rather than normal-approximation because it stays inside [0, 1]
+    and behaves at proportions near the ends, where coverage lives.
+    """
+    if n == 0:
+        return (0.0, 1.0)
+    phat = successes / n
+    denominator = 1 + z**2 / n
+    centre = (phat + z**2 / (2 * n)) / denominator
+    half = (z / denominator) * math.sqrt(phat * (1 - phat) / n + z**2 / (4 * n**2))
+    return (max(0.0, centre - half), min(1.0, centre + half))
+
+
 def conformal_quantile(scores: np.ndarray, alpha: float) -> float:
     """The ceil((n+1)(1-alpha))/n empirical quantile of calibration scores.
 
@@ -60,7 +77,11 @@ class Calibration:
     n_calibration: int
     # Measured on the held-out test set, not assumed from alpha.
     empirical_coverage: dict[float, float] = field(default_factory=dict)
+    # 95% Wilson interval on that measurement. Coverage is an estimate from a
+    # finite test set and must carry its own uncertainty like anything else.
+    coverage_ci: dict[float, tuple[float, float]] = field(default_factory=dict)
     mean_width: dict[float, float] = field(default_factory=dict)
+    n_test: int = 0
 
     def half_width(self, alpha: float, difficulty: float | None = None) -> float:
         quantile = self.quantiles[alpha]

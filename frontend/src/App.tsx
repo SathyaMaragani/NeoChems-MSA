@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import MoleculeEditor from './components/MoleculeEditor'
+import QsarTab from './components/QsarTab'
 import RepresentTab from './components/RepresentTab'
 import RetrosynthesisTab from './components/RetrosynthesisTab'
 import SearchTab from './components/SearchTab'
 import { retroHealth } from './api'
 import './App.css'
 
-const TABS = ['Represent', 'Retrosynthesis', 'Search'] as const
+const TABS = ['Represent', 'Retrosynthesis', 'Search', 'Properties'] as const
 type Tab = (typeof TABS)[number]
 
 export default function App() {
@@ -74,6 +75,7 @@ export default function App() {
             {activeTab === 'Represent' && <RepresentTab smiles={smiles} />}
             {activeTab === 'Retrosynthesis' && <RetrosynthesisTab smiles={smiles} />}
             {activeTab === 'Search' && <SearchTab smiles={smiles} />}
+            {activeTab === 'Properties' && <QsarTab smiles={smiles} />}
           </div>
         </section>
       </main>

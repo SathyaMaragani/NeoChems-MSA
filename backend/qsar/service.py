@@ -152,6 +152,12 @@ class QsarService:
                                     "alpha": alpha,
                                     "nominal": round(1 - alpha, 4),
                                     "empirical": model.conformal.empirical_coverage[alpha],
+                                    # Coverage is itself an estimate from a finite
+                                    # test set; adjacent rows overlap.
+                                    "empirical_ci_95": list(
+                                        model.conformal.coverage_ci.get(alpha, ())
+                                    ),
+                                    "n_test": model.conformal.n_test,
                                     "mean_width": model.conformal.mean_width[alpha],
                                 }
                                 for alpha in sorted(model.conformal.quantiles)
@@ -190,6 +196,8 @@ class QsarService:
 
         half_width = calibration.half_width(alpha)
         coverage = calibration.empirical_coverage.get(alpha)
+        ci = calibration.coverage_ci.get(alpha)
+        ci_text = f" (95% CI {ci[0]:.0%}-{ci[1]:.0%}, n={calibration.n_test})" if ci else ""
         return {
             "lower": round(value - half_width, 4),
             "upper": round(value + half_width, 4),
@@ -197,10 +205,12 @@ class QsarService:
             "nominal_coverage": round(1 - alpha, 4),
             "method": f"split-conformal/{calibration.method}",
             "empirical_coverage": coverage,
+            "empirical_coverage_ci_95": list(ci) if ci else [],
             "n_calibration": calibration.n_calibration,
+            "n_test": calibration.n_test,
             "note": (
                 f"Nominal {1 - alpha:.0%} interval; MEASURED coverage on the held-out "
-                f"test set is {coverage:.1%}. Coverage falls short of nominal because "
+                f"test set is {coverage:.0%}{ci_text}. Coverage falls short of nominal because "
                 "the scaffold split puts calibration and test in different scaffold "
                 "distributions, violating the exchangeability conformal assumes. "
                 "Coverage is marginal across the test distribution, NOT a "

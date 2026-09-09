@@ -252,15 +252,27 @@ RMSE for every molecule.
 **Use this table to pick alpha, not the label.** Measured on the untouched
 scaffold test set (113 molecules) for the served `baseline` model:
 
-| alpha | nominal | **measured** | mean width |
-|---|---|---|---|
-| 0.05 | 95% | **92.0%** | 3.24 |
-| 0.10 | 90% | **81.4%** | 2.65 |
-| 0.20 | 80% | **68.1%** | 1.99 |
+| alpha | nominal | **measured** | 95% CI | mean width |
+|---|---|---|---|---|
+| 0.05 | 95% | **92%** | 86–96% | 3.24 |
+| 0.10 | 90% | **81%** | 73–88% | 2.65 |
+| 0.20 | 80% | **68%** | 59–76% | 1.99 |
 
 Ask for `alpha: 0.05` if you want roughly 90% real coverage. The same mapping is
 served from `GET /predict/properties` as a `coverage` list per model, so a client
 can choose by measured coverage without hardcoding this table.
+
+**Coverage is itself an estimate, from 113 test molecules.** The Wilson intervals
+above are wide, and **adjacent rows overlap** — 0.05 (86–96%) and 0.10 (73–88%)
+are not cleanly separated. Read this table as a lookup for choosing alpha, not as
+evidence that one alpha is significantly better covered than the next. The same
+caution applies to the plain-versus-normalized comparison below: plain's 92% and
+normalized[kNN]'s 88.5% have overlapping CIs at this n. The decision rests on
+plain being *both* higher and narrower, plus the argument about varying widths -
+not on that gap being statistically established.
+
+Two decimal places, not four: reporting 0.8142 on 113 molecules asserts a
+precision the sample cannot support.
 
 **This mapping does not transfer.** It is a property of *this* model on *this*
 scaffold split of *this* dataset — not a general correction factor for conformal

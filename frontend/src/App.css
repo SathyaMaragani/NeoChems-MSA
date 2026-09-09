@@ -392,3 +392,78 @@ body {
   color: #3730a3;
   border: 1px solid #c7d2fe;
 }
+
+/* --- QSAR / property prediction ----------------------------------------- */
+
+.controls label.wide select { width: 260px; }
+
+.controls select {
+  padding: 6px 8px;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.prediction-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.prediction-value { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+.prediction-units { color: var(--muted); font-size: 13px; }
+
+.interval { margin: 14px 0 4px; }
+
+.interval-track {
+  position: relative;
+  height: 26px;
+  background: #f3f4f6;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.interval-span {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+}
+
+.interval-point {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.interval-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.interval-value { color: var(--accent); font-weight: 700; }
+
+.hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--border);
+  color: #fff;
+  font-size: 10px;
+  cursor: help;
+  vertical-align: middle;
+}
