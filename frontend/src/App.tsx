@@ -4,17 +4,23 @@ import QsarTab from './components/QsarTab'
 import RepresentTab from './components/RepresentTab'
 import RetrosynthesisTab from './components/RetrosynthesisTab'
 import SearchTab from './components/SearchTab'
-import { retroHealth } from './api'
+import { PanelTabs, Sidebar, TopBar, type WorkspaceKey } from './components/Shell'
+import { moleculeStats, retroHealth } from './api'
 import './App.css'
 
-const TABS = ['Represent', 'Retrosynthesis', 'Search', 'Properties'] as const
-type Tab = (typeof TABS)[number]
+const WORKSPACE_TABS: { key: WorkspaceKey; label: string }[] = [
+  { key: 'retrosynthesis', label: 'Retrosynthesis' },
+  { key: 'search', label: 'Molecular Search' },
+  { key: 'properties', label: 'Properties' },
+  { key: 'structure', label: 'Structure' },
+]
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('Represent')
-  // Single source of truth for the structure, shared by the editor and every tab.
+  const [workspace, setWorkspace] = useState<WorkspaceKey>('retrosynthesis')
+  // Single source of truth for the structure, shared by the editor and every panel.
   const [smiles, setSmiles] = useState('')
   const [backendUp, setBackendUp] = useState<boolean | null>(null)
+  const [moleculeCount, setMoleculeCount] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -30,55 +36,57 @@ export default function App() {
     }
   }, [])
 
+  // A real total from the table. substructure_search would have capped at top_n
+  // and reported the cap as the library size.
+  useEffect(() => {
+    if (!backendUp || moleculeCount !== null) return
+    moleculeStats()
+      .then((body) => setMoleculeCount(body.total))
+      .catch(() => undefined)
+  }, [backendUp, moleculeCount])
+
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>RamChems</h1>
-        <span className="subtitle">retrosynthesis + molecular search</span>
-        <span className={`health health-${backendUp === null ? 'unknown' : backendUp ? 'up' : 'down'}`}>
-          {backendUp === null
-            ? 'checking backend...'
-            : backendUp
-              ? 'backend connected'
-              : 'backend not running'}
-        </span>
-      </header>
+      <Sidebar
+        active={workspace}
+        onSelect={setWorkspace}
+        backendUp={backendUp}
+        moleculeCount={moleculeCount}
+      />
 
-      {backendUp === false && (
-        <div className="banner">
-          The backend is not reachable on <code>http://localhost:8000</code>. Start it
-          from the repo root:{' '}
-          <code>uvicorn backend.api.main:app --port 8000</code> (and{' '}
-          <code>docker compose up -d</code> for the search database).
-        </div>
-      )}
+      <div className="main">
+        <TopBar backendUp={backendUp} onLoadSmiles={setSmiles} />
 
-      <main className="layout">
-        <section className="panel editor-panel">
-          <h2>Structure</h2>
-          <MoleculeEditor smiles={smiles} onSmilesChange={setSmiles} />
-        </section>
-
-        <section className="panel actions-panel">
-          <nav className="tabs">
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                className={tab === activeTab ? 'tab active' : 'tab'}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-          <div className="tab-body">
-            {activeTab === 'Represent' && <RepresentTab smiles={smiles} />}
-            {activeTab === 'Retrosynthesis' && <RetrosynthesisTab smiles={smiles} />}
-            {activeTab === 'Search' && <SearchTab smiles={smiles} />}
-            {activeTab === 'Properties' && <QsarTab smiles={smiles} />}
+        {backendUp === false && (
+          <div className="offline-bar">
+            Backend unreachable on <code>http://localhost:8000</code>. From the repo
+            root: <code>docker compose up -d</code> then{' '}
+            <code>uvicorn backend.api.main:app --port 8000</code>.
           </div>
-        </section>
-      </main>
+        )}
+
+        <div className="columns">
+          <section className="panel input-panel">
+            <div className="panel-head">
+              <h2>Structure</h2>
+              <span className="panel-head-note">shared across every workspace</span>
+            </div>
+            <div className="panel-scroll">
+              <MoleculeEditor smiles={smiles} onSmilesChange={setSmiles} />
+            </div>
+          </section>
+
+          <section className="panel output-panel">
+            <PanelTabs tabs={WORKSPACE_TABS} active={workspace} onSelect={setWorkspace} />
+            <div className="panel-scroll">
+              {workspace === 'retrosynthesis' && <RetrosynthesisTab smiles={smiles} />}
+              {workspace === 'search' && <SearchTab smiles={smiles} />}
+              {workspace === 'properties' && <QsarTab smiles={smiles} />}
+              {workspace === 'structure' && <RepresentTab smiles={smiles} />}
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   )
 }

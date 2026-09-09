@@ -196,3 +196,24 @@ def test_similarity_search_stays_stereo_blind(_db, client):
         json={"smiles": "CC(C)Cc1ccc([C@H](C)C(=O)O)cc1", "top_n": 2},
     ).json()
     assert {r["tanimoto"] for r in body["results"]} == {1.0}
+
+
+def test_molecule_stats_reports_the_real_table_size(client, _db):
+    """The UI needs a true library size. substructure_search caps its count at
+    top_n, so using that as the total silently reports the cap instead."""
+    body = client.get("/molecules/stats").json()
+    assert body["total"] > 2000
+    assert body["mineral_salts"] > 0
+    assert body["mineral_salts"] < body["total"]
+
+    capped = client.post(
+        "/search/substructure", json={"smiles_pattern": "C", "top_n": 500}
+    ).json()
+    assert capped["count"] == 500, "substructure count is capped, as expected"
+    assert body["total"] != capped["count"], "stats must not be the capped count"
+
+
+def test_stats_route_does_not_shadow_molecule_by_id(client, _db):
+    """/molecules/stats must not be parsed as /molecules/{id}."""
+    assert client.get("/molecules/stats").status_code == 200
+    assert client.get("/molecules/42").status_code == 200

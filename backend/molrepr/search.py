@@ -47,6 +47,22 @@ def _serialise(row: dict) -> dict:
     return row
 
 
+def stats() -> dict:
+    """Row counts for the molecules table.
+
+    Exists because the UI needs a real total: substructure_search caps its count
+    at top_n, so using it as a library size reports the cap, not the table.
+    """
+    with pool().connection() as conn:
+        row = conn.execute(
+            """SELECT count(*) AS total,
+                      count(*) FILTER (WHERE is_mineral_salt) AS mineral_salts,
+                      count(DISTINCT source) AS sources
+               FROM molecules"""
+        ).fetchone()
+    return dict(row)
+
+
 def get_molecule(molecule_id: int) -> dict | None:
     with pool().connection() as conn:
         row = conn.execute(

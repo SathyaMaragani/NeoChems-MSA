@@ -106,6 +106,10 @@ export const represent = (smiles: string) =>
 
 export const getMolecule = (id: number) => request<Molecule>(`/molecules/${id}`)
 
+export type MoleculeStats = { total: number; mineral_salts: number; sources: number }
+
+export const moleculeStats = () => request<MoleculeStats>('/molecules/stats')
+
 // --- search ----------------------------------------------------------------
 
 export type SimilarityHit = Molecule & { tanimoto: number }

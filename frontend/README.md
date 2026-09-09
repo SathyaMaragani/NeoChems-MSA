@@ -35,9 +35,12 @@ VITE_API_BASE=http://127.0.0.1:9000 npm run dev
 
 ## Layout
 
-Structure editor on the left, action tabs on the right. The current SMILES is
-lifted state in `App.tsx` and shared by all three tabs — draw or paste once, then
-switch tabs freely without re-entering the molecule.
+App shell with a dark sidebar, a top bar, and two panels: the structure editor on
+the left, workspace results on the right. The current SMILES is lifted state in
+`App.tsx` and shared by every workspace — draw or paste once, then switch freely
+without re-entering the molecule.
+
+Ctrl/Cmd-K focuses the top-bar box; paste a SMILES there to load it into the editor.
 
 Covers **3 of 3** backend modules.
 
@@ -47,6 +50,27 @@ Covers **3 of 3** backend modules.
 | **Retrosynthesis** | `POST /retrosynthesis/plan` — routes with images, scores, per-step templates. |
 | **Search** | `POST /search/exact`, `/search/similarity`, `/search/substructure` |
 | **Properties** | `GET /predict/properties`, `POST /predict/property` — solubility with a conformal prediction interval. |
+| **Structure** | `POST /molecules/represent` (same as Represent, in the results panel) |
+
+## Nothing in the UI is decorative
+
+The shell follows a product design reference, but every figure shown is one the
+backend actually returns. Where the reference implied a capability that does not
+exist, it was left out rather than mocked:
+
+| Reference element | What was done |
+|---|---|
+| "Estimated yield ~78%" | **Omitted.** There is no yield model. Replaced with policy probability and weakest-step policy, which are real. |
+| "Find Suppliers" | **Omitted.** No supplier data. |
+| Route badges "Lower Cost", "Functional Group Strategy" | **Omitted.** Nothing computes cost or strategy class. Routes are labelled by rank and step count. |
+| Reaction Prediction / Libraries / Projects | **Shown disabled**, marked `soon`, with a tooltip. They are on the roadmap; showing them enabled would imply they work. |
+| 3D Viewer | **Omitted.** Not built. |
+| "Upgrade Plan" promo | **Replaced** with a live status card — API state, real library size, model state. This is a local single-user tool. |
+| Filters (commercially available / synthetic accessibility / avoid rare reagents) | **Omitted.** The API exposes none of these. Search depth maps to the real `iteration_limit`. |
+
+The sidebar's compound count comes from `GET /molecules/stats`, added for this —
+`substructure_search` caps its count at `top_n`, so using it as a library size
+reports the cap (500) rather than the table (2,269).
 
 ## The Properties tab shows measured coverage, not nominal
 

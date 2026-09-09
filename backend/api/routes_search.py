@@ -29,6 +29,13 @@ class SubstructureRequest(BaseModel):
     top_n: int = Field(50, ge=1, le=500)
 
 
+@router.get("/molecules/stats")
+def molecule_stats() -> dict:
+    """Library size. Declared before /molecules/{id} so "stats" is not parsed
+    as an id."""
+    return search.stats()
+
+
 @router.get("/molecules/{molecule_id}")
 def get_molecule(molecule_id: int, include_image: bool = Query(True)) -> dict:
     molecule = search.get_molecule(molecule_id)
