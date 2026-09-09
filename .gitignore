@@ -1,0 +1,22 @@
+# AiZynthFinder pretrained models / stock files — large binaries, re-download with:
+#   download_public_data data/external/aizynthfinder
+data/external/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
+output/
+models/
+
+# frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# editors / OS
+.DS_Store
+.idea/
+.vscode/

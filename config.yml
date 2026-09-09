@@ -1,0 +1,21 @@
+# AiZynthFinder configuration.
+# Paths are relative to the repo root; service.py resolves them to absolute,
+# so it does not matter what directory you launch uvicorn from.
+# Re-fetch the referenced files with:
+#   download_public_data data/external/aizynthfinder
+#
+# MCTS search settings are left at AiZynthFinder defaults on purpose (not tuned yet).
+
+expansion:
+  uspto:
+    - data/external/aizynthfinder/uspto_model.onnx
+    - data/external/aizynthfinder/uspto_templates.csv.gz
+  ringbreaker:
+    - data/external/aizynthfinder/uspto_ringbreaker_model.onnx
+    - data/external/aizynthfinder/uspto_ringbreaker_templates.csv.gz
+
+filter:
+  uspto: data/external/aizynthfinder/uspto_filter_model.onnx
+
+stock:
+  zinc: data/external/aizynthfinder/zinc_stock.hdf5

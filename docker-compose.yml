@@ -1,0 +1,34 @@
+services:
+  db:
+    # PINNED DELIBERATELY - DO NOT BUMP IN ISOLATION.
+    # This tag ships RDKit 2023.09, matching the Python-side rdkit==2023.09.6 that
+    # AiZynthFinder's `rdkit<2024.0.0` constraint forces on us. Python and the
+    # cartridge must agree on canonicalization; if they drift, the symptom is
+    # "search returns weird results", not a clean error.
+    # Coupled to: requirements.txt (aizynthfinder -> rdkit). Move both together.
+    image: informaticsmatters/rdkit-cartridge-debian:Release_2023_09_3
+    container_name: ramchems_db
+    environment:
+      POSTGRES_USER: ramchems
+      POSTGRES_PASSWORD: ramchems
+      POSTGRES_DB: ramchems
+      # This image's initdb defaults to SQL_ASCII, which does no encoding
+      # validation and makes psycopg hand back bytes instead of str for text
+      # columns. Force UTF8 at cluster creation - it cannot be changed later
+      # without recreating the volume.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      # 127.0.0.1 only - not reachable from the network.
+      # 5434 because 5432/5433 are taken by other projects on this machine.
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ramchems -d ramchems"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
