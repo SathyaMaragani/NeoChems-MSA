@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MoleculeEditor from '../components/MoleculeEditor'
+import { BrandMark } from '../components/BrandMark'
 import { Depiction, MoleculeCard } from '../components/MoleculeCard'
 import { Collapsible, WorkspaceHeader } from '../components/Shell'
 import { errorMessage } from '../components/Feedback'
@@ -378,7 +379,7 @@ export default function RetrosynthesisWorkspace({
       {mode === 'loading' && (
         <div className="stage loading-stage">
           <div className="loading-mark">
-            <SparkIcon />
+            <BrandMark height={44} />
           </div>
           <h2>Planning retrosynthesis</h2>
           <p>Exploring reaction space with the USPTO expansion policy.</p>

@@ -33,6 +33,22 @@ Point at a different API with `VITE_API_BASE`:
 VITE_API_BASE=http://127.0.0.1:9000 npm run dev
 ```
 
+## Brand assets
+
+The source artwork is `assets/logo.png` (1536x1024, transparent). Web copies are
+generated from it, cropped to the artwork's own alpha bounds:
+
+| File | Use |
+|---|---|
+| `src/assets/logo-mark.png` | 135x88 lockup — sidebar, collapsed rail, loading screen |
+| `src/assets/logo-icon.png` | 256x256 padded square |
+| `public/favicon.png`, `public/apple-touch-icon.png` | browser icons |
+
+Regenerate them with the snippet in the commit that added them; the 1.5 MB
+original is never shipped (the lockup is 16 KB). The background is genuinely
+transparent, so the mark sits directly on the dark sidebar with no plate behind
+it — do not wrap it in a square.
+
 ## Architecture: one workspace, one state
 
 The sidebar is the only navigation. Whichever feature is selected owns the entire
