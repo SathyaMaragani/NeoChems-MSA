@@ -49,14 +49,18 @@ export function MoleculeCard({
   smiles,
   role,
   inStock,
+  large = false,
 }: {
   smiles: string
   role: string
   inStock?: boolean
+  /** Results own the full workspace now, so molecules can be big enough to
+   *  actually inspect. */
+  large?: boolean
 }) {
   const [copied, setCopied] = useState(false)
   return (
-    <figure className="mol-card">
+    <figure className={`mol-card${large ? ' large' : ''}`}>
       <div className="mol-card-head">
         <span className={`role-chip ${role.toLowerCase()}`}>{role}</span>
         {inStock !== undefined && (

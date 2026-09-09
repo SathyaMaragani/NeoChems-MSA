@@ -33,76 +33,46 @@ Point at a different API with `VITE_API_BASE`:
 VITE_API_BASE=http://127.0.0.1:9000 npm run dev
 ```
 
-## Layout
+## Architecture: one workspace, one state
 
-App shell with a dark sidebar, a top bar, and two panels: the structure editor on
-the left, workspace results on the right. The current SMILES is lifted state in
-`App.tsx` and shared by every workspace — draw or paste once, then switch freely
-without re-entering the molecule.
+The sidebar is the only navigation. Whichever feature is selected owns the entire
+main area — there is no permanent results panel and no second row of tabs.
 
-Ctrl/Cmd-K focuses the top-bar box; paste a SMILES there to load it into the editor.
-
-Covers **3 of 3** backend modules.
-
-| Tab | Endpoint |
-|---|---|
-| **Represent** | `POST /molecules/represent` — canonical SMILES, InChIKey, MW, depiction. No database. Start here to confirm the editor is producing what you expect. |
-| **Retrosynthesis** | `POST /retrosynthesis/plan` — routes with images, scores, per-step templates. |
-| **Search** | `POST /search/exact`, `/search/similarity`, `/search/substructure` |
-| **Properties** | `GET /predict/properties`, `POST /predict/property` — solubility with a conformal prediction interval. |
-| **Structure** | `POST /molecules/represent` (same as Represent, in the results panel) |
-
-## Nothing in the UI is decorative
-
-The shell follows a product design reference, but every figure shown is one the
-backend actually returns. Where the reference implied a capability that does not
-exist, it was left out rather than mocked:
-
-| Reference element | What was done |
-|---|---|
-| "Estimated yield ~78%" | **Omitted.** There is no yield model. Replaced with policy probability and weakest-step policy, which are real. |
-| "Find Suppliers" | **Omitted.** No supplier data. |
-| Route badges "Lower Cost", "Functional Group Strategy" | **Omitted.** Nothing computes cost or strategy class. Routes are labelled by rank and step count. |
-| Reaction Prediction / Libraries / Projects | **Shown disabled**, marked `soon`, with a tooltip. They are on the roadmap; showing them enabled would imply they work. |
-| 3D Viewer | **Omitted.** Not built. |
-| "Upgrade Plan" promo | **Replaced** with a live status card — API state, real library size, model state. This is a local single-user tool. |
-| Filters (commercially available / synthetic accessibility / avoid rare reagents) | **Omitted.** The API exposes none of these. Search depth maps to the real `iteration_limit`. |
-
-The sidebar's compound count comes from `GET /molecules/stats`, added for this —
-`substructure_search` caps its count at `top_n`, so using it as a library size
-reports the cap (500) rather than the table (2,269).
-
-## The Properties tab shows measured coverage, not nominal
-
-Everything selectable is populated from `GET /predict/properties` — properties,
-models, and the calibrated alpha list. Nothing is hardcoded, so a new property
-appears in the dropdowns without a frontend change.
-
-The confidence selector deliberately labels each option with its **measured**
-coverage:
+Retrosynthesis is a three-state machine inside that workspace:
 
 ```
-alpha = 0.05 - measured 92% coverage
-alpha = 0.1  - measured 81% coverage
-alpha = 0.2  - measured 68% coverage
+EDITOR ──Plan──> LOADING ──> RESULTS ──Edit molecule──> EDITOR ──Plan──> ...
 ```
 
-A dropdown offering "90%" would undo the backend's honesty work: intervals
-under-cover their nominal label because of the scaffold split. The measured
-figure carries its own 95% CI (n = 113) beside it, because coverage is itself an
-estimate.
+Only one state is on screen at a time. The editor never appears beside results.
 
-Two other display choices worth keeping:
+**The editor is hidden, not unmounted.** Ketcher boots a WASM structure service,
+so remounting it costs seconds — "Edit molecule" would feel like restarting the
+app. Hiding it keeps the drawing, the zoom level and the boot.
 
-- The interval is drawn as a **bar** with the point estimate marked, not just two
-  numbers. A +/-1.3 log-unit range reads as abstract in text and obvious as a bar.
-- `structurally_familiar` is labelled **"structural similarity to training data"**
-  with a caption saying it does *not* predict accuracy. Calibration measured that
-  directly and found no relationship (p = 0.44), so presenting it as a confidence
-  signal would be false.
+> One gotcha worth knowing: the `hidden` attribute is overridden by any `display`
+> declaration, so `.stage[hidden] { display: none !important }` is load-bearing.
+> Without it the editor renders *beside* the results — the exact layout this
+> architecture removes.
 
-The "not experimentally validated" caption is permanent and not dismissible - the
-person reading a number in a browser is not the person who read the README.
+### Stale results
+
+Results belong to the structure they were computed from. Editing the molecule
+marks the state dirty, which:
+
+- changes the primary action to **Plan new retrosynthesis**
+- shows a "Target molecule modified" warning in the editor
+- warns on the results view that they are out of date
+- asks before going back to results, since those routes describe a different
+  structure
+
+This is a scientific correctness point, not a nicety: routes shown against the
+wrong molecule are wrong.
+
+### Routing
+
+`/retrosynthesis`, `/search`, `/properties`, `/structure` via the History API —
+`pushState` on navigate, `popstate` on back. No router dependency for four routes.
 
 ## Editor and SMILES field
 

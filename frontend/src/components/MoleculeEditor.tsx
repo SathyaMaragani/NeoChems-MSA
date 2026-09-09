@@ -7,18 +7,19 @@ import 'ketcher-react/dist/index.css'
 // Runs the whole structure service in-browser (WASM) - no Ketcher server needed.
 const structServiceProvider = new StandaloneStructServiceProvider()
 
-const EXAMPLES: [string, string][] = [
-  ['Aspirin', 'CC(=O)Oc1ccccc1C(=O)O'],
-  ['Ibuprofen', 'CC(C)Cc1ccc(C(C)C(=O)O)cc1'],
-  ['Paracetamol', 'CC(=O)Nc1ccc(O)cc1'],
-]
-
 type Props = {
   smiles: string
   onSmilesChange: (smiles: string) => void
+  onReady?: (ready: boolean) => void
 }
 
-export default function MoleculeEditor({ smiles, onSmilesChange }: Props) {
+/** The canvas only. SMILES entry, examples and actions live in the workspace
+ *  around it, so the editor can be the hero it is meant to be.
+ *
+ *  Mounted once and hidden with CSS rather than unmounted between workspace
+ *  states: Ketcher boots a WASM structure service, so remounting costs seconds
+ *  and would make "Edit molecule" feel like restarting the app. */
+export default function MoleculeEditor({ smiles, onSmilesChange, onReady }: Props) {
   const ketcherRef = useRef<Ketcher | null>(null)
   const [ready, setReady] = useState(false)
   // Set while we push a structure INTO Ketcher, so the resulting 'change' event
@@ -40,10 +41,8 @@ export default function MoleculeEditor({ smiles, onSmilesChange }: Props) {
       try {
         await ketcher.setMolecule(smiles.trim())
       } catch {
-        // Partial or invalid SMILES while typing. The Represent tab reports
-        // properly on what the backend thinks; no need to shout here.
+        // Partial or invalid SMILES while typing; the workspace reports validity.
       } finally {
-        // Let Ketcher's own change events settle before listening again.
         setTimeout(() => {
           applying.current = false
         }, 150)
@@ -52,10 +51,10 @@ export default function MoleculeEditor({ smiles, onSmilesChange }: Props) {
     return () => clearTimeout(timer)
   }, [smiles, ready])
 
-  // Canvas -> text field.
   const handleInit = (ketcher: Ketcher) => {
     ketcherRef.current = ketcher
     setReady(true)
+    onReady?.(true)
     ketcher.editor.subscribe('change', async () => {
       if (applying.current) return
       try {
@@ -69,60 +68,19 @@ export default function MoleculeEditor({ smiles, onSmilesChange }: Props) {
   }
 
   return (
-    <>
-      <div className="ketcher-host">
-        <Editor
-          staticResourcesUrl={import.meta.env.BASE_URL}
-          structServiceProvider={structServiceProvider}
-          errorHandler={(message: string) => console.error('[ketcher]', message)}
-          onInit={handleInit}
-        />
-      </div>
-
-      <label className="smiles-label" htmlFor="smiles-input">
-        SMILES
-      </label>
-      <input
-        id="smiles-input"
-        className="smiles-input"
-        value={smiles}
-        placeholder="Paste a SMILES, or draw above"
-        spellCheck={false}
-        onChange={(event) => {
-          fromEditor.current = null
-          onSmilesChange(event.target.value)
-        }}
+    <div className="editor-canvas">
+      <Editor
+        staticResourcesUrl={import.meta.env.BASE_URL}
+        structServiceProvider={structServiceProvider}
+        errorHandler={(message: string) => console.error('[ketcher]', message)}
+        onInit={handleInit}
       />
-
-      <div className="examples">
-        <span className="muted">Load:</span>
-        {EXAMPLES.map(([name, value]) => (
-          <button
-            key={name}
-            className="link-button"
-            onClick={() => {
-              fromEditor.current = null
-              onSmilesChange(value)
-            }}
-          >
-            {name}
-          </button>
-        ))}
-        <button
-          className="link-button"
-          onClick={() => {
-            fromEditor.current = null
-            onSmilesChange('')
-          }}
-        >
-          Clear
-        </button>
-      </div>
-
-      <p className="status">
-        {ready ? 'Editor ready' : 'Loading editor...'}
-        {ready && ' - Ketcher rewrites SMILES in its own form; the canonical string comes from the backend.'}
-      </p>
-    </>
+      {!ready && (
+        <div className="editor-boot">
+          <span className="spinner" />
+          <span>Starting structure editor…</span>
+        </div>
+      )}
+    </div>
   )
 }

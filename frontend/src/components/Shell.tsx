@@ -1,5 +1,11 @@
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
-import logo from '../assets/logo.png'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from 'react'
+import { BrandLockup } from './BrandMark'
 import {
   BookIcon,
   ChevronIcon,
@@ -20,32 +26,43 @@ export type WorkspaceKey = 'retrosynthesis' | 'search' | 'properties' | 'structu
 const NAV: {
   key: WorkspaceKey | string
   label: string
-  hint: string
   icon: ComponentType<{ className?: string }>
   planned?: boolean
 }[] = [
-  { key: 'retrosynthesis', label: 'Retrosynthesis', hint: 'Plan synthetic routes', icon: RetroIcon },
-  { key: 'search', label: 'Molecular Search', hint: 'Find similar compounds', icon: SearchIcon },
-  { key: 'properties', label: 'Properties', hint: 'Predict solubility', icon: FlaskIcon },
-  { key: 'structure', label: 'Structure', hint: 'Canonical form & identifiers', icon: BookIcon },
-  { key: 'reaction', label: 'Reaction Prediction', hint: 'Planned', icon: ReactionIcon, planned: true },
-  { key: 'libraries', label: 'Libraries', hint: 'Planned', icon: LibraryIcon, planned: true },
-  { key: 'projects', label: 'Projects', hint: 'Planned', icon: FolderIcon, planned: true },
+  { key: 'retrosynthesis', label: 'Retrosynthesis', icon: RetroIcon },
+  { key: 'search', label: 'Molecular Search', icon: SearchIcon },
+  { key: 'properties', label: 'Properties', icon: FlaskIcon },
+  { key: 'structure', label: 'Structure', icon: BookIcon },
+  { key: 'reaction', label: 'Reaction Prediction', icon: ReactionIcon, planned: true },
+  { key: 'libraries', label: 'Libraries', icon: LibraryIcon, planned: true },
+  { key: 'projects', label: 'Projects', icon: FolderIcon, planned: true },
 ]
 
 export function Sidebar({
   active,
   onSelect,
-  backendUp,
-  moleculeCount,
+  collapsed,
+  onToggleCollapsed,
 }: {
   active: WorkspaceKey
   onSelect: (key: WorkspaceKey) => void
-  backendUp: boolean | null
-  moleculeCount: number | null
+  collapsed: boolean
+  onToggleCollapsed: () => void
 }) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+      <div className="sidebar-brand">
+        <BrandLockup compact={collapsed} />
+        <button
+          className="collapse-toggle"
+          onClick={onToggleCollapsed}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <ChevronIcon />
+        </button>
+      </div>
+
       <nav className="nav">
         {NAV.map((item) => {
           const Icon = item.icon
@@ -56,71 +73,100 @@ export function Sidebar({
               className={`nav-item${isActive ? ' active' : ''}${item.planned ? ' planned' : ''}`}
               onClick={() => !item.planned && onSelect(item.key as WorkspaceKey)}
               disabled={item.planned}
-              title={item.planned ? 'On the roadmap, not built yet' : undefined}
+              title={item.planned ? `${item.label} — on the roadmap, not built yet` : item.label}
             >
               <span className="nav-icon">
                 <Icon />
               </span>
-              <span className="nav-text">
-                <span className="nav-label">{item.label}</span>
-                <span className="nav-hint">{item.hint}</span>
-              </span>
-              {item.planned && <span className="nav-badge">soon</span>}
+              {!collapsed && <span className="nav-label">{item.label}</span>}
+              {!collapsed && item.planned && <span className="nav-badge">soon</span>}
             </button>
           )
         })}
       </nav>
 
       <div className="sidebar-foot">
-        {/* Real status, not a promo slot. */}
-        <div className="status-card">
-          <div className="status-title">Local instance</div>
-          <ul className="status-list">
-            <li>
-              <span className={`dot ${backendUp ? 'ok' : backendUp === null ? 'idle' : 'bad'}`} />
-              API {backendUp === null ? 'checking' : backendUp ? 'connected' : 'offline'}
-            </li>
-            <li>
-              <span className={`dot ${moleculeCount ? 'ok' : 'idle'}`} />
-              {moleculeCount ? moleculeCount.toLocaleString() : '—'} compounds indexed
-            </li>
-            <li>
-              <span className="dot ok" />
-              USPTO route models loaded
-            </li>
-          </ul>
-          <p className="status-note">
-            Public datasets only. Predictions are not experimentally validated.
-          </p>
-        </div>
-
-        <a
-          className="sidebar-link"
-          href="https://github.com/aspuru-guzik-group/aizynthfinder"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <BookIcon /> Documentation
-        </a>
-        <button className="sidebar-link" disabled title="On the roadmap, not built yet">
-          <GearIcon /> Settings
+        <button className="nav-item" disabled title="Settings — not built yet">
+          <span className="nav-icon">
+            <GearIcon />
+          </span>
+          {!collapsed && <span className="nav-label">Settings</span>}
         </button>
       </div>
     </aside>
   )
 }
 
+export type BackendStatus = {
+  up: boolean | null
+  moleculeCount: number | null
+  modelLoadSeconds: number | null
+}
+
+/** Status stays available but secondary - a pill, with the implementation
+ *  detail behind a popover rather than filling the sidebar. */
+export function StatusPill({ status }: { status: BackendStatus }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (event: MouseEvent) => {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  const tone = status.up === null ? 'idle' : status.up ? 'ok' : 'bad'
+  return (
+    <div className="status-wrap" ref={ref}>
+      <button className={`health-pill ${tone}`} onClick={() => setOpen((v) => !v)}>
+        <span className="dot" />
+        {status.up === null ? 'Checking…' : status.up ? 'Backend connected' : 'Backend offline'}
+      </button>
+      {open && (
+        <div className="status-popover">
+          <h4>Local instance</h4>
+          <dl>
+            <div>
+              <dt>API</dt>
+              <dd>{status.up ? 'localhost:8000' : 'unreachable'}</dd>
+            </div>
+            <div>
+              <dt>Route models</dt>
+              <dd>
+                {status.modelLoadSeconds != null
+                  ? `USPTO · loaded in ${status.modelLoadSeconds}s`
+                  : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt>Compound library</dt>
+              <dd>
+                {status.moleculeCount != null
+                  ? `${status.moleculeCount.toLocaleString()} indexed`
+                  : '—'}
+              </dd>
+            </div>
+          </dl>
+          <p>Public datasets only. Predictions are not experimentally validated.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function TopBar({
-  backendUp,
+  status,
   onLoadSmiles,
 }: {
-  backendUp: boolean | null
+  status: BackendStatus
   onLoadSmiles: (smiles: string) => void
 }) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Ctrl/Cmd-K focuses the jump box, the one shortcut worth having.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -134,14 +180,6 @@ export function TopBar({
 
   return (
     <header className="topbar">
-      <div className="brand">
-        <img className="brand-mark" src={logo} alt="" />
-        <div className="brand-text">
-          <span className="brand-name">RamChems</span>
-          <span className="brand-sub">Retrosynthesis · Molecular Search · Properties</span>
-        </div>
-      </div>
-
       <form
         className="jump"
         onSubmit={(event) => {
@@ -159,44 +197,40 @@ export function TopBar({
           ref={inputRef}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Paste a SMILES to load it into the editor…"
+          placeholder="Paste a SMILES to load it into the workspace…"
           spellCheck={false}
-          aria-label="Load a SMILES into the editor"
+          aria-label="Load a SMILES into the workspace"
         />
         <kbd>Ctrl K</kbd>
       </form>
 
       <div className="topbar-right">
-        <span className={`health-pill ${backendUp === null ? 'idle' : backendUp ? 'ok' : 'bad'}`}>
-          <span className="dot" />
-          {backendUp === null ? 'Checking…' : backendUp ? 'Backend connected' : 'Backend offline'}
-        </span>
+        <StatusPill status={status} />
       </div>
     </header>
   )
 }
 
-export function PanelTabs<T extends string>({
-  tabs,
-  active,
-  onSelect,
+export function WorkspaceHeader({
+  title,
+  subtitle,
+  actions,
+  meta,
 }: {
-  tabs: { key: T; label: string }[]
-  active: T
-  onSelect: (key: T) => void
+  title: string
+  subtitle?: string
+  actions?: ReactNode
+  meta?: ReactNode
 }) {
   return (
-    <nav className="panel-tabs">
-      {tabs.map((tab) => (
-        <button
-          key={tab.key}
-          className={tab.key === active ? 'panel-tab active' : 'panel-tab'}
-          onClick={() => onSelect(tab.key)}
-        >
-          {tab.label}
-        </button>
-      ))}
-    </nav>
+    <header className="workspace-header">
+      <div className="workspace-heading">
+        <h1>{title}</h1>
+        {subtitle && <p>{subtitle}</p>}
+        {meta}
+      </div>
+      {actions && <div className="workspace-actions">{actions}</div>}
+    </header>
   )
 }
 
