@@ -12,7 +12,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.molrepr.service import InvalidSmilesError
-from backend.qsar.service import QsarService, UnknownPropertyError
+from backend.qsar.service import (
+    QsarService,
+    UncalibratedAlphaError,
+    UnknownPropertyError,
+)
 
 router = APIRouter(prefix="/predict", tags=["qsar"])
 
@@ -30,6 +34,16 @@ class PredictRequest(BaseModel):
     property: str = Field("solubility", description="Property to predict")
     model: Optional[str] = Field(
         None, description="Model name; omit to use the property's default"
+    )
+    alpha: float = Field(
+        0.1,
+        gt=0.0,
+        lt=1.0,
+        description=(
+            "Conformal miscoverage level. Only calibrated values are accepted - "
+            "see calibrated_alphas from GET /predict/properties. Uncalibrated "
+            "values are rejected rather than interpolated."
+        ),
     )
 
 
@@ -57,8 +71,9 @@ def predict(request: PredictRequest) -> dict:
             smiles=request.smiles,
             property_name=request.property,
             model=request.model,
+            alpha=request.alpha,
         )
     except InvalidSmilesError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
-    except UnknownPropertyError as err:
+    except (UnknownPropertyError, UncalibratedAlphaError) as err:
         raise HTTPException(status_code=400, detail=str(err)) from err

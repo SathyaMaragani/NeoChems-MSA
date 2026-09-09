@@ -25,7 +25,8 @@ NOTE = (
     "max_train_similarity measures structural novelty only. Calibration on the "
     "held-out test set found no relationship between it and prediction error "
     "(Pearson -0.074, permutation p=0.44), so a familiar molecule is NOT thereby "
-    "a reliable prediction. Use model_performance.test_rmse for expected error."
+    "a reliable prediction. For expected error use prediction_interval, whose "
+    "empirical_coverage was measured on held-out data."
 )
 
 # How many neighbours to keep for reporting.

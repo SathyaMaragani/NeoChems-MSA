@@ -5,7 +5,7 @@ a second one is configuration, not a new endpoint.
 
 > **These predictions are not experimentally validated.** Nothing here has been
 > checked against a measurement made in this lab. The served model has a held-out
-> scaffold-split RMSE of **0.96 log units** — roughly a factor of 9 in mol/L. This
+> scaffold-split RMSE of **0.99 log units** — roughly a factor of 10 in mol/L. This
 > is a working pipeline, not a working predictor. Do not use it to make a decision
 > you would not also make by guessing from logP.
 
@@ -87,6 +87,7 @@ All test-set numbers. Every model saw the identical partition — chemprop reads
 | RDKit descriptors | Random Forest | 1.168 | 0.713 | 0.888 | 0.175 |
 | RDKit descriptors | XGBoost | 1.094 | 0.748 | 0.882 | 0.134 |
 | **fingerprint + descriptors** | **XGBoost** | **0.988** | **0.794** | 0.917 | 0.123 |
+
 | D-MPNN (chemprop, 50 epochs) | — | 1.004 | 0.788 | 0.892 | 0.104 |
 
 Two findings worth keeping:
@@ -212,8 +213,7 @@ ones. Whatever max-Tanimoto captures here, it is not reliability.
 prediction was trustworthy; the calibration does not support that claim, and a
 field name is the part of an API people actually read. The response carries a
 `note` stating the finding, and the honest source of expected error is
-`model_performance.test_rmse` — the same +/- 0.96 for every molecule, because that
-is genuinely all this model knows about its own error.
+`model_performance.test_rmse`, plus the conformal `prediction_interval` below.
 
 Aspirin sits at exactly 0.400 and is flagged familiar only because the comparison is
 `>=`. With no calibrated threshold behind it, that boundary is arbitrary — treat it
@@ -232,6 +232,134 @@ Random Forest / XGBoost per-tree prediction variance; conformal prediction
 `--conformal-alpha`); or an ensemble trained on different seeds. All of them
 estimate error directly rather than using structural distance as a proxy for it.
 
+## Prediction intervals (split conformal)
+
+Every prediction carries a calibrated interval. This replaced quoting one global
+RMSE for every molecule.
+
+```json
+"prediction_interval": {
+  "lower": -3.5216, "upper": -0.8749,
+  "alpha": 0.1, "nominal_coverage": 0.9,
+  "method": "split-conformal/plain",
+  "empirical_coverage": 0.8142,
+  "n_calibration": 111
+}
+```
+
+### Coverage is measured, not nominal — and it undershoots
+
+**Use this table to pick alpha, not the label.** Measured on the untouched
+scaffold test set (113 molecules) for the served `baseline` model:
+
+| alpha | nominal | **measured** | mean width |
+|---|---|---|---|
+| 0.05 | 95% | **92.0%** | 3.24 |
+| 0.10 | 90% | **81.4%** | 2.65 |
+| 0.20 | 80% | **68.1%** | 1.99 |
+
+Ask for `alpha: 0.05` if you want roughly 90% real coverage. The same mapping is
+served from `GET /predict/properties` as a `coverage` list per model, so a client
+can choose by measured coverage without hardcoding this table.
+
+**This mapping does not transfer.** It is a property of *this* model on *this*
+scaffold split of *this* dataset — not a general correction factor for conformal
+prediction. When Tox21 lands, its coverage must be measured from scratch. Do not
+reuse these numbers as an adjustment for another property.
+
+### Why it undershoots: exchangeability
+
+Conformal's guarantee assumes calibration and test points are exchangeable. A
+scaffold split deliberately breaks that: calibration comes from larger, commoner
+scaffold groups and test is the rarest scaffolds, so test is genuinely harder
+(test MAE 0.764 vs calibration 0.639) and a quantile learned on calibration is
+too small.
+
+Verified rather than assumed — the same procedure under a random split, where
+exchangeability does hold:
+
+```
+scaffold  alpha=0.10  ->  0.814      random  alpha=0.10  ->  0.903
+```
+
+Random lands essentially on nominal. **The undercoverage is the split, not a bug
+in the implementation** — and the scaffold split is still the right choice, since
+it is the honest measure of generalisation. The interval simply has to be read
+with its measured coverage.
+
+### What conformal does NOT give you
+
+- **Coverage is marginal, not conditional.** A 90%-labelled interval means ~81%
+  of predictions *across the test distribution* land inside. It does **not** mean
+  81% confidence for the molecule in front of you. Some regions of chemical space
+  are covered far better than others, and this gives you no way to tell which.
+- **Not a molecule-specific difficulty signal.** Plain conformal's width is
+  identical for every input, by construction (see below).
+- **No guarantee off-distribution.** For a molecule unlike anything in
+  calibration, the interval carries no assurance at all — that is the same
+  territory the `structurally_familiar` flag reports on.
+
+### Plain was served, not normalized
+
+Normalized (locally adaptive) conformal was implemented and rejected. Both
+difficulty estimates were tried and neither produced widths that track error:
+
+| difficulty estimate | Pearson(width, abs error) | p | 95% CI |
+|---|---|---|---|
+| RF per-tree dispersion | +0.110 | 0.251 | [−0.114, +0.336] |
+| kNN out-of-fold residual | +0.003 | 0.974 | [−0.177, +0.185] |
+
+Permutation test and bootstrap CIs, the same treatment the applicability
+calibration got. Both span zero.
+
+Two reasons plain wins:
+
+1. **Plain dominates on both axes.** Plain at alpha=0.05 gives 92.0% coverage at
+   width 3.24; normalized[kNN] at alpha=0.10 gives 88.5% at width 3.56. Better
+   coverage *and* narrower. If you want ~90% real coverage, plain gets there more
+   efficiently — you just ask at a different alpha.
+2. **A varying width is itself a claim.** It tells the reader "this molecule is
+   harder", and that claim is false here: widths vary but are uncorrelated with
+   error, so two similar compounds would get different intervals for no reason.
+   Plain's constant width is honest about knowing nothing molecule-specific.
+   Noise wearing the costume of a signal is worse than saying nothing.
+
+On the difficulty estimator: **Random Forest per-tree dispersion, not XGBoost's.**
+Boosting builds additive corrections, so spread across its trees measures how much
+the fit kept correcting itself, not predictive uncertainty. Random Forest trees are
+independent estimates of the target, so their spread is a genuine dispersion
+measure. The kNN variant used **out-of-fold** (5-fold CV) training residuals;
+in-sample residuals would only have measured memorisation.
+
+### The calibration set must never be in the served model's training data
+
+**This is the invariant, and it is enforced in `train.py`, not by convention.**
+
+An earlier version fit the served model on train+val and would have calibrated on
+val. Residuals there are in-sample and tiny:
+
+```
+90th percentile |residual|:   val (in-sample) 0.225   vs   test (held out) 1.519
+```
+
+Intervals would have been **6.8x too narrow** — and nothing about the output would
+have looked wrong. Every number stays plausible; only measuring coverage on a
+genuinely held-out set exposes it. Whoever adds the next property hits this same
+fork, so `train.py` now fits on **train only**, uses **val** solely for
+calibration, and touches **test** only to measure coverage.
+
+Cost of the invariant: 111 fewer training molecules, test RMSE 0.964 -> 0.988.
+
+### Recalibrating
+
+```bash
+python -m backend.qsar.train        # refits, recalibrates, re-measures coverage
+python -m backend.qsar.conformal    # the plain vs normalized comparison
+```
+
+Coverage numbers in the artifact are written at train time from the test set, so
+they cannot drift from the model being served.
+
 ## API
 
 ### `POST /predict/property`
@@ -247,18 +375,20 @@ curl -X POST localhost:8000/predict/property -H 'Content-Type: application/json'
   "units": "log10(mol/L)",
   "model_used": "baseline",
   "model_performance": {
-    "test_rmse": 0.9638, "test_mae": 0.7177, "test_r2": 0.8044,
+    "test_rmse": 0.9884, "test_mae": 0.7642, "test_r2": 0.7936,
     "split": "scaffold",
-    "note": "Held-out scaffold-split metrics. The prediction should be read as roughly +/- 0.96 log10(mol/L)."
+    "note": "Held-out scaffold-split metrics. The prediction should be read as roughly +/- 0.99 log10(mol/L)."
   },
   "applicability": { "max_train_similarity": 0.4, "in_domain": true, "threshold": 0.4, "nearest_training_smiles": [...] }
 }
 ```
 
 `model` is optional (`baseline`, `descriptors`, `fingerprint`); omit it for the
-property's default. **Every prediction carries its own error bar** — a number that
+property's default. `alpha` is optional (default 0.1) and must be one of the
+**calibrated** values — an uncalibrated alpha returns 400 rather than being
+interpolated, because an interpolated interval has a coverage nobody measured. **Every prediction carries its own error bar** — a number that
 arrives without its uncertainty gets treated as more precise than it is, and at
-±0.96 log units this one especially should not be.
+±0.99 log units this one especially should not be.
 
 ### `GET /predict/properties`
 
@@ -293,7 +423,7 @@ prediction — remain genuinely held out. `models/` is gitignored.
 ## Limitations
 
 - **Not experimentally validated.** See the note at the top.
-- **±0.96 log units** on novel scaffolds. Useful for coarse ranking, not for
+- **±0.99 log units** on novel scaffolds. Useful for coarse ranking, not for
   deciding a formulation.
 - **1,117 molecules, 269 scaffolds.** Small, and skewed toward the small neutral
   organics and agrochemicals in Delaney's set. Charged species, organometallics and
@@ -305,5 +435,4 @@ prediction — remain genuinely held out. `models/` is gitignored.
 - **The applicability flag does not predict error.** Calibration measured this
   directly: no relationship, p = 0.44. It reports structural novelty, which is
   real and useful, but a familiar molecule is not thereby a reliable prediction.
-  The only honest per-prediction error estimate available is the model-wide
-  +/- 0.96 log units.
+  See the conformal section for what replaced it.

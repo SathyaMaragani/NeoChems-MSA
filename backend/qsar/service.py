@@ -19,6 +19,7 @@ import numpy as np
 from backend.molrepr.service import InvalidSmilesError
 from backend.qsar import baseline
 from backend.qsar.applicability import ApplicabilityIndex
+from backend.qsar.conformal import Calibration
 
 ROOT = Path(__file__).resolve().parents[2]
 MODEL_DIR = ROOT / "models/qsar"
@@ -26,6 +27,15 @@ MODEL_DIR = ROOT / "models/qsar"
 
 class UnknownPropertyError(ValueError):
     """Property or model name not in the registry -> HTTP 400."""
+
+
+class UncalibratedAlphaError(ValueError):
+    """An alpha with no measured coverage -> HTTP 400.
+
+    Interpolating between calibrated alphas would hand back an interval whose
+    real coverage nobody has checked, which is the whole thing conformal is
+    supposed to stop.
+    """
 
 
 @dataclass(frozen=True)
@@ -38,6 +48,7 @@ class ModelSpec:
     test_rmse: float
     test_mae: float
     test_r2: float
+    conformal: Calibration | None = None
 
 
 @dataclass(frozen=True)
@@ -48,6 +59,11 @@ class PropertySpec:
     dataset: str
     default_model: str
     models: dict[str, ModelSpec]
+    # "regression" -> conformal intervals. Classification (Tox21) will produce
+    # conformal prediction SETS from the same calibration machinery; the
+    # uncertainty block is built by task type, not assumed to be an interval.
+    task_type: str = "regression"
+    alphas: tuple[float, ...] = ()
 
 
 # Filled in by train_and_cache() / loaded from disk; metrics are written at train
@@ -59,6 +75,7 @@ SOLUBILITY_ARTIFACT = MODEL_DIR / "solubility" / "baseline.pkl"
 
 def _register_solubility(artifact: dict) -> None:
     metrics = artifact["metrics"]
+    conformal = artifact.get("conformal", {})
     models = {
         name: ModelSpec(
             name=name,
@@ -67,6 +84,7 @@ def _register_solubility(artifact: dict) -> None:
             test_rmse=metrics[name]["rmse"],
             test_mae=metrics[name]["mae"],
             test_r2=metrics[name]["r2"],
+            conformal=conformal.get(name),
         )
         for name in artifact["models"]
     }
@@ -77,6 +95,8 @@ def _register_solubility(artifact: dict) -> None:
         dataset=artifact["dataset"],
         default_model=artifact["default_model"],
         models=models,
+        task_type=artifact.get("task_type", "regression"),
+        alphas=tuple(artifact.get("alphas", ())),
     )
 
 
@@ -114,6 +134,8 @@ class QsarService:
                 "description": spec.description,
                 "dataset": spec.dataset,
                 "default_model": spec.default_model,
+                "task_type": spec.task_type,
+                "calibrated_alphas": list(spec.alphas),
                 "models": [
                     {
                         "model": model.name,
@@ -121,6 +143,22 @@ class QsarService:
                         "test_rmse": model.test_rmse,
                         "test_mae": model.test_mae,
                         "test_r2": model.test_r2,
+                        # A list, not a dict keyed by float: JSON stringifies
+                        # numeric keys, and this is the nominal -> empirical
+                        # mapping a caller needs to pick alpha by real coverage.
+                        "coverage": (
+                            [
+                                {
+                                    "alpha": alpha,
+                                    "nominal": round(1 - alpha, 4),
+                                    "empirical": model.conformal.empirical_coverage[alpha],
+                                    "mean_width": model.conformal.mean_width[alpha],
+                                }
+                                for alpha in sorted(model.conformal.quantiles)
+                            ]
+                            if model.conformal
+                            else []
+                        ),
                     }
                     for model in spec.models.values()
                 ],
@@ -128,8 +166,54 @@ class QsarService:
             for spec in PROPERTY_REGISTRY.values()
         ]
 
+    @staticmethod
+    def _uncertainty(spec: PropertySpec, model_spec: ModelSpec, value: float, alpha: float) -> dict:
+        """Conformal uncertainty, shaped by task type.
+
+        Regression yields an interval. Classification (Tox21 next) will yield a
+        prediction SET from the same calibrated quantiles - hence the dispatch
+        here rather than an interval baked into predict().
+        """
+        calibration = model_spec.conformal
+        if calibration is None:
+            return {}
+        if alpha not in calibration.quantiles:
+            raise UncalibratedAlphaError(
+                f"alpha {alpha} is not calibrated for {spec.name}/{model_spec.name}; "
+                f"calibrated values: {sorted(calibration.quantiles)}. "
+                "Interpolating would return an interval whose real coverage is unmeasured."
+            )
+        if spec.task_type != "regression":
+            raise UncalibratedAlphaError(
+                f"no conformal implementation for task_type {spec.task_type!r}"
+            )
+
+        half_width = calibration.half_width(alpha)
+        coverage = calibration.empirical_coverage.get(alpha)
+        return {
+            "lower": round(value - half_width, 4),
+            "upper": round(value + half_width, 4),
+            "alpha": alpha,
+            "nominal_coverage": round(1 - alpha, 4),
+            "method": f"split-conformal/{calibration.method}",
+            "empirical_coverage": coverage,
+            "n_calibration": calibration.n_calibration,
+            "note": (
+                f"Nominal {1 - alpha:.0%} interval; MEASURED coverage on the held-out "
+                f"test set is {coverage:.1%}. Coverage falls short of nominal because "
+                "the scaffold split puts calibration and test in different scaffold "
+                "distributions, violating the exchangeability conformal assumes. "
+                "Coverage is marginal across the test distribution, NOT a "
+                "molecule-specific confidence for this compound."
+            ),
+        }
+
     def predict(
-        self, smiles: str, property_name: str = "solubility", model: str | None = None
+        self,
+        smiles: str,
+        property_name: str = "solubility",
+        model: str | None = None,
+        alpha: float = 0.1,
     ) -> dict:
         spec = PROPERTY_REGISTRY.get(property_name)
         if spec is None:
@@ -168,5 +252,6 @@ class QsarService:
                     f"as roughly +/- {model_spec.test_rmse:.2f} {spec.units}."
                 ),
             },
+            "prediction_interval": self._uncertainty(spec, model_spec, value, alpha),
             "applicability": self._domains[property_name].score(smiles).to_dict(),
         }
