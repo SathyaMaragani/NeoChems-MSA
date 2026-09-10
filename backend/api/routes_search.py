@@ -6,6 +6,7 @@ import base64
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from backend.molrepr import resolve as resolver
 from backend.molrepr import search, service
 
 router = APIRouter(tags=["molecules"])
@@ -27,6 +28,23 @@ class SimilarityRequest(SmilesRequest):
 class SubstructureRequest(BaseModel):
     smiles_pattern: str = Field(..., description="Substructure query as SMILES")
     top_n: int = Field(50, ge=1, le=500)
+
+
+class ResolveRequest(BaseModel):
+    query: str = Field(..., description="A SMILES or a compound name")
+
+
+@router.post("/molecules/resolve")
+def resolve_query(request: ResolveRequest) -> dict:
+    """Turn what the user typed into a structure.
+
+    Without this, a name-shaped query fails as an unparseable SMILES, which reads
+    as the search being broken rather than the wrong input format.
+    """
+    try:
+        return resolver.resolve(request.query).to_dict()
+    except resolver.ResolutionError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
 
 
 @router.get("/molecules/stats")

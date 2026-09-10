@@ -49,12 +49,32 @@ original is never shipped (the lockup is 16 KB). The background is genuinely
 transparent, so the mark sits directly on the dark sidebar with no plate behind
 it — do not wrap it in a square.
 
+## Names as well as SMILES
+
+The structure field and the top-bar box both accept a **compound name**. Typing
+`glucose` used to fail as an unparseable SMILES, which reads as the search being
+broken rather than the wrong input format.
+
+`POST /molecules/resolve` tries to parse the input as a structure first — locally,
+no network — and only falls back to a PubChem name lookup for genuine names. The
+result is canonicalised through the same service everything else uses, so a
+resolved name and a pasted SMILES land on identical strings. When a name is
+resolved the UI says so: *Resolved "glucose" to D-Glucose via PubChem*.
+
+Names need network; SMILES never do. An unreachable PubChem produces a clear
+message rather than a generic parse error.
+
 ## Architecture: one workspace, one state
 
 The sidebar is the only navigation. Whichever feature is selected owns the entire
 main area — there is no permanent results panel and no second row of tabs.
 
-Retrosynthesis is a three-state machine inside that workspace:
+**Every workspace shares one editor.** Only the header, the options block and the
+top-right action change with the selected feature — Plan retrosynthesis / Search
+library / Predict properties / Analyse structure. Each workspace keeps its own
+result, so switching tabs does not throw work away.
+
+Each is the same three-state machine:
 
 ```
 EDITOR ──Plan──> LOADING ──> RESULTS ──Edit molecule──> EDITOR ──Plan──> ...

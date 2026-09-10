@@ -217,3 +217,53 @@ def test_stats_route_does_not_shadow_molecule_by_id(client, _db):
     """/molecules/stats must not be parsed as /molecules/{id}."""
     assert client.get("/molecules/stats").status_code == 200
     assert client.get("/molecules/42").status_code == 200
+
+
+# --- resolve: people type names, not SMILES ---------------------------------
+
+
+def test_resolve_passes_a_smiles_through_without_a_network_call(client):
+    """A structure must resolve locally - no PubChem round trip for SMILES."""
+    body = client.post("/molecules/resolve", json={"query": ASPIRIN}).json()
+    assert body["source"] == "smiles"
+    assert body["canonical_smiles"] == ASPIRIN
+    assert body["matched_name"] is None
+
+
+def test_resolve_canonicalises_a_non_canonical_smiles(client):
+    body = client.post(
+        "/molecules/resolve", json={"query": "OC(=O)c1ccccc1OC(C)=O"}
+    ).json()
+    assert body["canonical_smiles"] == ASPIRIN
+    assert body["source"] == "smiles"
+
+
+@pytest.mark.parametrize("query", ["", "   "])
+def test_resolve_rejects_empty_input(client, query):
+    assert client.post("/molecules/resolve", json={"query": query}).status_code == 400
+
+
+def test_resolve_looks_up_a_compound_name(client):
+    """glucose -> a structure. This is the bug that made search look broken:
+    a name-shaped query used to fail as an unparseable SMILES."""
+    response = client.post("/molecules/resolve", json={"query": "glucose"})
+    if response.status_code == 400 and "could not be reached" in response.json()["detail"]:
+        pytest.skip("PubChem unreachable; name resolution needs network")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["source"] == "pubchem"
+    assert "glucose" in (body["matched_name"] or "").lower()
+    # And the resolved structure must be usable by the rest of the API.
+    assert client.post(
+        "/search/similarity", json={"smiles": body["canonical_smiles"], "top_n": 3}
+    ).status_code == 200
+
+
+def test_resolve_reports_an_unknown_name_clearly(client):
+    response = client.post(
+        "/molecules/resolve", json={"query": "definitely_not_a_compound_zzq"}
+    )
+    if "could not be reached" in response.json().get("detail", ""):
+        pytest.skip("PubChem unreachable; name resolution needs network")
+    assert response.status_code == 400
+    assert "not a valid SMILES" in response.json()["detail"]

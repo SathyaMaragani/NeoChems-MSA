@@ -7,6 +7,25 @@ import 'ketcher-react/dist/index.css'
 // Runs the whole structure service in-browser (WASM) - no Ketcher server needed.
 const structServiceProvider = new StandaloneStructServiceProvider()
 
+/** Frame a newly loaded structure. Ketcher persists the last zoom level, so a
+ *  molecule loaded after someone zoomed out can arrive at 10% and read as an
+ *  empty canvas. Only called when WE load a structure - zooming by hand while
+ *  editing is left alone. */
+function fitView(ketcher: Ketcher) {
+  try {
+    const editor = ketcher.editor as unknown as {
+      zoom?: (value?: number) => number
+      centerViewportAccordingToStruct?: () => void
+    }
+    // editor.zoom(1) applies; ketcher.setZoom(1) silently no-ops in 3.18.
+    editor.zoom?.(1)
+    // centerViewportAccordingToStruct moves the viewport; centerStruct does not.
+    editor.centerViewportAccordingToStruct?.()
+  } catch {
+    // Zoom helpers are best-effort; a wrong frame is not worth breaking load over.
+  }
+}
+
 type Props = {
   smiles: string
   onSmilesChange: (smiles: string) => void
@@ -40,6 +59,7 @@ export default function MoleculeEditor({ smiles, onSmilesChange, onReady }: Prop
       applying.current = true
       try {
         await ketcher.setMolecule(smiles.trim())
+        fitView(ketcher)
       } catch {
         // Partial or invalid SMILES while typing; the workspace reports validity.
       } finally {
@@ -53,6 +73,8 @@ export default function MoleculeEditor({ smiles, onSmilesChange, onReady }: Prop
 
   const handleInit = (ketcher: Ketcher) => {
     ketcherRef.current = ketcher
+    // Handy for debugging in the console, and what ketcher-react itself expects.
+    ;(window as unknown as { ketcher?: Ketcher }).ketcher = ketcher
     setReady(true)
     onReady?.(true)
     ketcher.editor.subscribe('change', async () => {

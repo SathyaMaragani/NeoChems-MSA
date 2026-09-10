@@ -110,6 +110,19 @@ export type MoleculeStats = { total: number; mineral_salts: number; sources: num
 
 export const moleculeStats = () => request<MoleculeStats>('/molecules/stats')
 
+export type Resolution = {
+  query: string
+  canonical_smiles: string
+  /** "smiles" when the input already parsed; "pubchem" when a name was looked up. */
+  source: 'smiles' | 'pubchem'
+  matched_name: string | null
+}
+
+/** Accepts a SMILES or a compound name. Names are the common case for people
+ *  who are not thinking in SMILES, and used to fail as an unparseable string. */
+export const resolveQuery = (query: string) =>
+  post<Resolution>('/molecules/resolve', { query }, 20_000)
+
 // --- search ----------------------------------------------------------------
 
 export type SimilarityHit = Molecule & { tanimoto: number }
