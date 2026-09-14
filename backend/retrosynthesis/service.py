@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import io
+import logging
 import threading
 import time
 from pathlib import Path
@@ -21,6 +22,8 @@ DEFAULT_CONFIG = ROOT / "config.yml"
 
 DEFAULT_ITERATION_LIMIT = 100
 MAX_ITERATION_LIMIT = 500
+
+logger = logging.getLogger("ramchems.retrosynthesis")
 
 
 class InvalidRequestError(ValueError):
@@ -43,7 +46,15 @@ def load_config(config_path: Path, root: Path = ROOT) -> dict:
 
 
 def _molecule_node(node: dict) -> dict:
-    """Convert one AiZynthFinder tree node into the API's molecule shape."""
+    """Convert one AiZynthFinder tree node into the API's molecule shape.
+
+    Two fields already available from AiZynthFinder are now surfaced:
+    `template_hash` (stable across template files, unlike the numeric code) and
+    `template_occurrence` - how many times the template appears in the USPTO
+    template library. Occurrence is a LIBRARY COUNT: not a count of successful
+    experiments, not a yield, not a probability. The field name and the UI label
+    both say so.
+    """
     return {
         "molecule_smiles": node["smiles"],
         "is_stock_available": node.get("in_stock", False),
@@ -51,13 +62,86 @@ def _molecule_node(node: dict) -> dict:
             {
                 "reactants": [_molecule_node(mol) for mol in rxn.get("children", [])],
                 "template_used": rxn.get("metadata", {}).get("template_code"),
+                "template_hash": rxn.get("metadata", {}).get("template_hash"),
                 "template_smarts": rxn.get("metadata", {}).get("template"),
+                "template_occurrence": rxn.get("metadata", {}).get("library_occurence"),
                 "score": rxn.get("metadata", {}).get("policy_probability"),
                 "reaction_smiles": rxn.get("smiles", ""),
                 "classification": rxn.get("metadata", {}).get("classification"),
             }
             for rxn in node.get("children", [])
         ],
+    }
+
+
+def _enrich_with_evidence(node: dict, conditions_service) -> dict:
+    """Attach condition evidence to every reaction in a route tree.
+
+    Wrapped so a failure anywhere in the evidence layer degrades that step to
+    "unavailable" instead of failing the plan. A solved route stays solved even
+    with the evidence database down: retrosynthesis does not depend on
+    evidence retrieval.
+    """
+    for reaction in node.get("reactions", []):
+        try:
+            reaction["evidence"] = conditions_service.for_step(
+                reaction, node["molecule_smiles"]
+            )
+        except Exception:
+            logger.warning("evidence enrichment failed for a step", exc_info=False)
+            reaction["evidence"] = {
+                "evidence_level": "unavailable",
+                "reason": (
+                    "Evidence retrieval failed for this step, so no conclusion "
+                    "about precedent can be drawn either way."
+                ),
+            }
+        for child in reaction.get("reactants", []):
+            _enrich_with_evidence(child, conditions_service)
+    return node
+
+
+def _evidence_summary(tree: dict) -> dict:
+    """Route-level coverage: how much of this route is actually supported."""
+    counts = {
+        "experimental": 0,
+        "similar_experimental": 0,
+        "predicted": 0,
+        "unavailable": 0,
+    }
+    sources = set()
+
+    def walk(node: dict) -> None:
+        for reaction in node.get("reactions", []):
+            evidence = reaction.get("evidence") or {}
+            level = evidence.get("evidence_level", "unavailable")
+            counts[level] = counts.get(level, 0) + 1
+            for bucket in ("direct_precedents", "similar_precedents"):
+                for precedent in evidence.get(bucket, []):
+                    prov = precedent.get("provenance") or {}
+                    ident = (
+                        prov.get("doi")
+                        or prov.get("patent_number")
+                        or prov.get("source_id")
+                    )
+                    if ident:
+                        sources.add(ident)
+            for child in reaction.get("reactants", []):
+                walk(child)
+
+    walk(tree)
+    total = sum(counts.values())
+    supported = counts["experimental"] + counts["similar_experimental"]
+    return {
+        "steps": total,
+        "steps_with_experimental_evidence": counts["experimental"],
+        "steps_with_similar_evidence": counts["similar_experimental"],
+        "steps_predicted": counts["predicted"],
+        "steps_without_evidence": counts["unavailable"],
+        "evidence_coverage": round(supported / total, 3) if total else 0.0,
+        #  Distinct source records behind the matched precedents - a DOI or
+        #  patent number counted once. Not a count of the literature.
+        "distinct_sources": len(sources),
     }
 
 
@@ -93,6 +177,20 @@ class RetrosynthesisService:
         self._finder.filter_policy.select("uspto")
         self.load_time_seconds = round(time.time() - started, 2)
         self.ready = True
+        self._conditions = None
+
+    def _conditions_service(self):
+        """Built on first use, not at startup: the evidence layer is optional and
+        must never delay or block the retrosynthesis engine coming up."""
+        if self._conditions is None:
+            try:
+                from backend.conditions.service import ConditionsService
+
+                self._conditions = ConditionsService()
+            except Exception:
+                logger.warning("conditions service unavailable", exc_info=False)
+                return None
+        return self._conditions
 
     def plan_routes(
         self,
@@ -100,6 +198,7 @@ class RetrosynthesisService:
         top_n: int = 5,
         iteration_limit: int = DEFAULT_ITERATION_LIMIT,
         include_images: bool = False,
+        include_conditions: bool = False,
     ) -> dict:
         """Plan retrosynthetic routes for `smiles`.
 
@@ -153,6 +252,16 @@ class RetrosynthesisService:
                         ),
                     }
                 )
+
+            #  Enrichment runs AFTER the search, outside the engine, and only
+            #  when asked for. Default-off keeps existing clients byte-identical
+            #  and exactly as fast as before.
+            if include_conditions and routes:
+                conditions_service = self._conditions_service()
+                if conditions_service is not None:
+                    for entry in routes:
+                        _enrich_with_evidence(entry["tree"], conditions_service)
+                        entry["evidence_summary"] = _evidence_summary(entry["tree"])
 
             return {
                 "target_smiles": self._finder.target_smiles,

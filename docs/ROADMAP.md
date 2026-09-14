@@ -2,7 +2,7 @@
 
 Local drug discovery platform. Three backend modules + a React frontend, all running locally. No personal data, no deployment, no authentication.
 
-**Status as of 10 Sep 2026:** 3 of 3 planned modules built and working. 67 backend tests passing. Frontend covers 2 of 3 modules.
+**Status as of 11 Sep 2026:** 4 modules built and working. 196 backend tests passing (100 pre-existing + 96 new). Frontend covers all four.
 
 ---
 
@@ -21,9 +21,11 @@ Things you can run right now, end to end.
 | Molecule record + depiction | `GET /molecules/{id}` | Working |
 | Solubility prediction | `POST /predict/property` | Working |
 | Available properties/models | `GET /predict/properties` | Working |
-| Structure editor + 3 action tabs | frontend on :5173 | Working |
+| Reaction conditions + literature evidence | `POST /retrosynthesis/conditions` | Working |
+| Evidence provider + licence status | `GET /retrosynthesis/evidence/status` | Working |
+| Structure editor + 4 workspaces | frontend on :5173 | Working |
 
-**To start everything:** `docker compose up -d` → `uvicorn backend.api.main:app --port 8000` → `npm run dev --prefix frontend`
+**To start everything:** `docker compose up -d` → `uvicorn backend.api.main:app --port 8434` → `npm run dev --prefix frontend`
 
 ---
 
@@ -108,6 +110,39 @@ Aqueous solubility from structure.
 
 ---
 
+## Module 4 — Reaction conditions + literature evidence ✅
+
+Answers "what goes on the arrow?" for each retrosynthesis step, from reported
+experiments — or says ⚪ when nothing is known.
+
+- [x] Provider-agnostic domain model (`backend/conditions/schema.py`) — imports neither AiZynthFinder nor ORD
+- [x] `LiteratureProvider` / `ConditionPredictionProvider` interfaces + `NullProvider`
+- [x] Substrate-specific reaction identity (sha256 of sorted canonical reactants >> products)
+- [x] ORD provider: 216,681 reactions, 6 datasets, ingested selectively from the Hugging Face parquet mirror
+- [x] Two-stage retrieval — cartridge GiST prefilter, then reaction-difference-fingerprint reranking
+- [x] Aggregation across precedents: median + observed range + observation count
+- [x] Postgres evidence cache keyed on `(reaction_key, provider, provider_version, dataset_version)` — no Redis
+- [x] `POST /retrosynthesis/plan` gains `include_conditions`, **default off**
+- [x] Frontend: conditions on the arrow, 4-level evidence badges (DIRECT / SIMILAR / AI-PREDICTED / NO VERIFIED), expandable precedents, route coverage strip
+- [x] 96 tests (69 unit + 27 API), including regressions for four defects found in the V2.1 audit
+- [ ] **No condition-prediction model** — deliberately. See the working notes.
+
+**Working notes**
+
+- ⚠️ **ORD data is CC-BY-SA-4.0 (ShareAlike)**, not CC-BY as first assumed. Copyleft. Needs a legal decision before commercial release — [docs/data-provenance.md](data-provenance.md).
+- ⚠️ **Implemented and tested ≠ experimentally validated.** No condition this system returns has been run in a lab by us.
+- **AiZynthFinder templates carry no condition data at all** — five columns, and the reaction SMILES has an empty agents slot. Conditions *must* come from outside the route search; this is not a tuning problem.
+- **ORD over Lowe/USPTO** because only ORD records temperature and time. Lowe has agents + yield + patent number but no temperature, no time.
+- **Identity is substrate-specific, not template-specific.** One template spans many substrates, so a template-keyed lookup would return precedents for different molecules and label them "experimental".
+- **Coverage is thin and that is visible, not hidden.** Aspirin's acetylation is not in the index; it honestly reports ⚪. Most targets will. That is a data-volume problem.
+- **`ord-ingest` is a third conda env** — `ord-schema` pins protobuf < 6 against the serving env's 7, and rdkit ≥ 2026 against AiZynthFinder's < 2024. The serving env never imports it.
+- **Evidence can never promote an unsolved route.** Ibuprofen stays unsolved at 100 iterations with five precedents on a step; asserted by test.
+- ⚠️ **The similar-precedent path was dead on arrival** and nobody could tell. Two stacked bugs in three lines, both swallowed by a bare `except` — see the Known defects section of [reaction-condition-intelligence.md](reaction-condition-intelligence.md). Fixing it changed aspirin from "no evidence" to 6 similar precedents. Every swallow in the subsystem now logs.
+- **Retrieval is now benchmarked** against ORD's own `REACTION_TYPE` labels (90,035 labelled reactions, 42 types) — see [retrieval-benchmark.md](retrieval-benchmark.md). All three tuned constants were guessed wrong: the weighting was on the wrong side (substrate matters more than transformation), the 0.35 floor was the single worst setting tested, and the prefilter threshold was too tight. Retuned: P@1 0.434 → 0.516, silent 43% → 28%.
+- **The ranking is fine; recall is the problem.** Given a relevant candidate, the reranker ranks it first 92% of the time. But stage 1 offers one for only 56% of queries, because it retrieves by product similarity — the wrong key for transformation search.
+
+---
+
 ## Frontend ✅ (partial)
 
 - [x] React 19 + Vite 8 + TypeScript
@@ -116,7 +151,8 @@ Aqueous solubility from structure.
 - [x] Retrosynthesis tab with live elapsed timer + advanced iteration limit
 - [x] Search tab (exact / similarity / substructure sub-tabs)
 - [x] Error handling: invalid SMILES inline, backend-down banner
-- [ ] **QSAR tab — not built.** The API is live but has no UI.
+- [x] QSAR / Properties workspace
+- [x] Reaction conditions on the arrow + evidence badges + route coverage
 
 **Working notes**
 
@@ -129,7 +165,10 @@ Aqueous solubility from structure.
 
 ### Next up
 
-- [ ] **Add a QSAR tab to the frontend** — smallest gap between built and usable. `GET /predict/properties` already returns everything needed to populate a dropdown.
+- [x] ~~**Retrieval benchmark for the evidence layer**~~ — done; see [retrieval-benchmark.md](retrieval-benchmark.md).
+- [ ] **Transformation-keyed stage 1** — store the reaction difference fingerprint in Postgres with its own index, so retrieval is keyed on the transformation rather than on product-molecule similarity. This is the measured bottleneck (only 56% of queries are offered a relevant candidate) and it also makes the benchmark-preferred threshold affordable, since candidate fingerprints stop being recomputed per request.
+- [ ] **Forward reaction validation** — run each proposed step through a forward model and flag steps whose predicted product is not the target. Directly addresses the class of problem the ibuprofen route exposed.
+- [ ] **Patent evidence provider** — ORD carries 0% patent provenance, and much of medicinal/process chemistry lives in patents. One new `LiteratureProvider` subclass.
 - [ ] **Toxicity (Tox21)** — the substantive next capability. ~7,800 molecules, 12 assays, classification not regression, ~5% actives. Breaks several assumptions this codebase was built on, in useful ways.
 - [ ] **A real reliability signal for QSAR** — conformal prediction or per-tree variance. Structural distance demonstrably isn't one.
 
@@ -167,5 +206,5 @@ They never import each other; data crosses as CSV.
 | Port | Service |
 | --- | --- |
 | 5173 | Vite dev server (fixed — CORS allow-list names it) |
-| 8000 | FastAPI |
+| 8434 | FastAPI |
 | 5434 | Postgres (5432/5433 taken by other projects) |

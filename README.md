@@ -7,7 +7,13 @@ A local drug discovery platform. Three backend modules and a frontend for testin
 | Retrosynthesis (AiZynthFinder) | [backend/retrosynthesis/README.md](backend/retrosynthesis/README.md) |
 | Molecular representation + search (RDKit + Postgres cartridge) | [backend/molrepr/README.md](backend/molrepr/README.md) |
 | QSAR property prediction (solubility) | [backend/qsar/README.md](backend/qsar/README.md) |
+| Reaction conditions + literature evidence (ORD) | [docs/reaction-condition-intelligence.md](docs/reaction-condition-intelligence.md) |
+| Retrieval benchmark (is "similar" actually relevant?) | [docs/retrieval-benchmark.md](docs/retrieval-benchmark.md) |
 | Frontend (React + Vite + Ketcher) | [frontend/README.md](frontend/README.md) |
+
+Every dataset, its licence, and what that licence permits:
+[docs/data-provenance.md](docs/data-provenance.md). Read it before shipping —
+the reaction-condition data is **CC-BY-SA-4.0**, which is copyleft.
 
 ## Running everything locally
 
@@ -31,7 +37,7 @@ python scripts/ingest_molecules.py
 
 ```bash
 conda activate retrosynth
-uvicorn backend.api.main:app --port 8000
+uvicorn backend.api.main:app --port 8434
 ```
 
 Takes ~8 s to start — it loads the AiZynthFinder expansion model and the ZINC stock
@@ -45,6 +51,19 @@ download_public_data data/external/aizynthfinder
 python scripts/download_esol.py
 python -m backend.qsar.train
 ```
+
+Optional, for reaction conditions on the arrow — ingest Open Reaction Database
+datasets into the evidence index (separate conda env; see
+[docs/reaction-condition-intelligence.md](docs/reaction-condition-intelligence.md)):
+
+```bash
+conda activate ord-ingest
+python scripts/ingest_ord.py --list
+python scripts/ingest_ord.py --dataset <id>
+```
+
+Without this the platform works exactly as before; steps simply report
+"no verified evidence" rather than inventing conditions.
 
 **3. Frontend**
 
@@ -76,14 +95,17 @@ obvious immediately.
 | Port | What | Note |
 |---|---|---|
 | 5173 | Vite dev server | fixed; the backend CORS allow-list names it |
-| 8000 | FastAPI | |
+| 8434 | FastAPI | **not** 8000 — that is every framework's default and is contended on a multi-project machine. Override in `frontend/.env` via `VITE_API_BASE` |
 | 5434 | Postgres | 5432/5433 were already taken by other projects on this machine |
+
+Postgres also holds the reaction-evidence index and its cache — no Redis, no
+second datastore.
 
 ## Tests
 
 ```bash
 conda activate retrosynth
-pytest                                  # 66 backend tests
+pytest                                  # 197 backend tests
 python scripts/test_retrosynthesis.py   # 3-molecule sanity check, exits 1 by design
 npx tsc -b --noEmit --project frontend  # frontend typecheck
 ```
@@ -94,12 +116,13 @@ review tool — do not wire it into CI as-is.
 
 ## Environments
 
-Two conda envs, deliberately separate:
+Three conda envs, deliberately separate:
 
 | env | holds | why |
 |---|---|---|
 | `retrosynth` | everything served by the API | rdkit 2023.09.6, networkx 2.x, pinned by AiZynthFinder and coupled to the Postgres cartridge |
 | `qsar-chemprop` | chemprop + torch cu128 only | chemprop needs rdkit >= 2026 and networkx >= 3, which would break the above |
+| `ord-ingest` | `ord-schema` + pyarrow, for ORD ingestion only | `ord-schema` pins protobuf < 6 and rdkit >= 2026, both of which break the serving env |
 
 They never import each other; QSAR splits cross between them as CSV. The API loads
 only the `retrosynth` env. See [backend/qsar/README.md](backend/qsar/README.md).

@@ -39,6 +39,14 @@ class PlanRequest(BaseModel):
         ),
     )
     include_images: bool = Field(False, description="Embed a base64 PNG per route")
+    include_conditions: bool = Field(
+        False,
+        description=(
+            "Attach experimental condition evidence to every reaction step. "
+            "Off by default so existing calls keep their current speed; "
+            "enrichment failure never fails the plan."
+        ),
+    )
 
 
 @router.get("/health")
@@ -65,6 +73,7 @@ def plan(request: PlanRequest) -> dict:
             top_n=request.top_n,
             iteration_limit=request.iteration_limit,
             include_images=request.include_images,
+            include_conditions=request.include_conditions,
         )
     except InvalidRequestError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err

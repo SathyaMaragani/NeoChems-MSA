@@ -1,0 +1,50 @@
+{
+  "threshold 0.5 limit 400": {
+    "ceiling_recall": 0.1385,
+    "queries_offered_any_relevant": 0.5257,
+    "median_candidates": 123,
+    "latency_p50_ms": 10.5
+  },
+  "threshold 0.5 limit 1000": {
+    "ceiling_recall": 0.1427,
+    "queries_offered_any_relevant": 0.5257,
+    "median_candidates": 123,
+    "latency_p50_ms": 10.2
+  },
+  "threshold 0.4 limit 400": {
+    "ceiling_recall": 0.1515,
+    "queries_offered_any_relevant": 0.5771,
+    "median_candidates": 197,
+    "latency_p50_ms": 11.7
+  },
+  "threshold 0.4 limit 1000": {
+    "ceiling_recall": 0.1563,
+    "queries_offered_any_relevant": 0.5771,
+    "median_candidates": 197,
+    "latency_p50_ms": 11.6
+  },
+  "threshold 0.3 limit 400": {
+    "ceiling_recall": 0.1579,
+    "queries_offered_any_relevant": 0.6,
+    "median_candidates": 400,
+    "latency_p50_ms": 14.6
+  },
+  "threshold 0.3 limit 1000": {
+    "ceiling_recall": 0.1725,
+    "queries_offered_any_relevant": 0.6114,
+    "median_candidates": 514,
+    "latency_p50_ms": 13.3
+  },
+  "threshold 0.3 limit 3000": {
+    "ceiling_recall": 0.1884,
+    "queries_offered_any_relevant": 0.6229,
+    "median_candidates": 514,
+    "latency_p50_ms": 13.9
+  },
+  "threshold 0.2 limit 3000": {
+    "ceiling_recall": 0.2324,
+    "queries_offered_any_relevant": 0.68,
+    "median_candidates": 3000,
+    "latency_p50_ms": 40.8
+  }
+}

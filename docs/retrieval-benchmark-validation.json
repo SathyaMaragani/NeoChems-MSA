@@ -1,0 +1,151 @@
+{
+  "split": "validation",
+  "queries": 300,
+  "seed": 0,
+  "settings": {
+    "thresholds": {
+      "product": 0.4,
+      "substrate": 0.4,
+      "transformation": 0.6,
+      "hybrid": 0.6
+    },
+    "limit": 1000,
+    "transformation_weight": 0.3,
+    "floor": 0.2,
+    "min_campaigns_per_type": 4
+  },
+  "leakage_controlled": {
+    "product": {
+      "queries": 300,
+      "precision_at_1": 0.3267,
+      "precision_at_5": 0.3127,
+      "precision_at_10": 0.312,
+      "recall_at_10": 0.3123,
+      "mrr": 0.3335,
+      "ndcg_at_10": 0.3143,
+      "precision_at_1_when_relevant_available": 0.7903,
+      "queries_offered_any_relevant": 0.4133,
+      "candidate_recall": 0.0875,
+      "silent_rate": 0.39,
+      "mean_candidates": 316.6
+    },
+    "transformation": {
+      "queries": 300,
+      "precision_at_1": 0.32,
+      "precision_at_5": 0.2433,
+      "precision_at_10": 0.219,
+      "recall_at_10": 0.3179,
+      "mrr": 0.3336,
+      "ndcg_at_10": 0.3148,
+      "precision_at_1_when_relevant_available": 0.6234,
+      "queries_offered_any_relevant": 0.5133,
+      "candidate_recall": 0.0407,
+      "silent_rate": 0.3267,
+      "mean_candidates": 112.5533
+    },
+    "substrate": {
+      "queries": 300,
+      "precision_at_1": 0.4033,
+      "precision_at_5": 0.3853,
+      "precision_at_10": 0.3787,
+      "recall_at_10": 0.384,
+      "mrr": 0.4103,
+      "ndcg_at_10": 0.387,
+      "precision_at_1_when_relevant_available": 0.8403,
+      "queries_offered_any_relevant": 0.48,
+      "candidate_recall": 0.1005,
+      "silent_rate": 0.33,
+      "mean_candidates": 303.69
+    },
+    "hybrid": {
+      "queries": 300,
+      "precision_at_1": 0.4367,
+      "precision_at_5": 0.41,
+      "precision_at_10": 0.4003,
+      "recall_at_10": 0.4072,
+      "mrr": 0.444,
+      "ndcg_at_10": 0.4122,
+      "precision_at_1_when_relevant_available": 0.6485,
+      "queries_offered_any_relevant": 0.6733,
+      "candidate_recall": 0.1262,
+      "silent_rate": 0.2167,
+      "mean_candidates": 578.3033
+    }
+  },
+  "uncontrolled_same_campaign_allowed": {
+    "product": {
+      "queries": 300,
+      "precision_at_1": 0.5933,
+      "precision_at_5": 0.582,
+      "precision_at_10": 0.564,
+      "recall_at_10": 0.5757,
+      "mrr": 0.6035,
+      "ndcg_at_10": 0.579,
+      "precision_at_1_when_relevant_available": 0.8812,
+      "queries_offered_any_relevant": 0.6733,
+      "candidate_recall": 0.1359,
+      "silent_rate": 0.2167,
+      "mean_candidates": 351.2567
+    },
+    "transformation": {
+      "queries": 300,
+      "precision_at_1": 0.39,
+      "precision_at_5": 0.3153,
+      "precision_at_10": 0.2747,
+      "recall_at_10": 0.3869,
+      "mrr": 0.4053,
+      "ndcg_at_10": 0.3852,
+      "precision_at_1_when_relevant_available": 0.7134,
+      "queries_offered_any_relevant": 0.5467,
+      "candidate_recall": 0.0422,
+      "silent_rate": 0.2667,
+      "mean_candidates": 120.2833
+    },
+    "substrate": {
+      "queries": 300,
+      "precision_at_1": 0.6267,
+      "precision_at_5": 0.614,
+      "precision_at_10": 0.5903,
+      "recall_at_10": 0.613,
+      "mrr": 0.6386,
+      "ndcg_at_10": 0.6153,
+      "precision_at_1_when_relevant_available": 0.8704,
+      "queries_offered_any_relevant": 0.72,
+      "candidate_recall": 0.1466,
+      "silent_rate": 0.1833,
+      "mean_candidates": 338.5667
+    },
+    "hybrid": {
+      "queries": 300,
+      "precision_at_1": 0.6367,
+      "precision_at_5": 0.6213,
+      "precision_at_10": 0.5973,
+      "recall_at_10": 0.6182,
+      "mrr": 0.649,
+      "ndcg_at_10": 0.6216,
+      "precision_at_1_when_relevant_available": 0.7764,
+      "queries_offered_any_relevant": 0.82,
+      "candidate_recall": 0.1666,
+      "silent_rate": 0.1367,
+      "mean_candidates": 610.1867
+    }
+  },
+  "latency_ms": {
+    "product": {
+      "p50": 25.2,
+      "p95": 68.5
+    },
+    "transformation": {
+      "p50": 134.1,
+      "p95": 173.8
+    },
+    "substrate": {
+      "p50": 24.3,
+      "p95": 58.0
+    },
+    "hybrid": {
+      "p50": 62.7,
+      "p95": 171.9
+    }
+  }
+}

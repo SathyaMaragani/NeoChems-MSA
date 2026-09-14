@@ -17,6 +17,7 @@ import {
   RetroIcon,
   SearchIcon,
 } from './icons'
+import { API_BASE } from '../api'
 
 export type WorkspaceKey = 'retrosynthesis' | 'search' | 'properties' | 'structure'
 
@@ -131,7 +132,7 @@ export function StatusPill({ status }: { status: BackendStatus }) {
           <dl>
             <div>
               <dt>API</dt>
-              <dd>{status.up ? 'localhost:8000' : 'unreachable'}</dd>
+              <dd>{status.up ? API_BASE.replace(/^https?:\/\//, '') : 'unreachable'}</dd>
             </div>
             <div>
               <dt>Route models</dt>

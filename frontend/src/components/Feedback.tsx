@@ -3,7 +3,7 @@ import { ApiError, BackendDownError } from '../api'
 /** Turns a thrown error into a message the user can act on. */
 export function errorMessage(error: unknown): string {
   if (error instanceof BackendDownError) {
-    return 'Backend not running. Start it with: uvicorn backend.api.main:app --port 8000'
+    return 'Backend not running. Start it with: uvicorn backend.api.main:app --port 8434'
   }
   if (error instanceof ApiError) {
     if (error.status === 404) return `No match: ${error.message}`

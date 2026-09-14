@@ -1,4 +1,16 @@
-const BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
+/** Where the RamChems API lives.
+ *
+ *  Port 8434 rather than 8000: 8000 is the default every framework reaches for,
+ *  so on a machine running more than one project it is contended, and a service
+ *  answering there may belong to something else entirely. The Postgres port is
+ *  5434 for the same reason. Override with VITE_API_BASE (see .env.example).
+ *
+ *  Exported so nothing else hardcodes a URL - a second copy is how the two
+ *  drift apart and the UI tells you to check a port it is not using.
+ */
+export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8434'
+
+const BASE = API_BASE
 
 /** Backend is unreachable (not running, wrong port, CORS refused). */
 export class BackendDownError extends Error {
@@ -148,13 +160,108 @@ export const substructureSearch = (smiles_pattern: string, top_n: number) =>
 
 // --- retrosynthesis --------------------------------------------------------
 
+/** How a condition came to be known. Never blurred in the UI. */
+export type EvidenceLevel =
+  | 'experimental'
+  | 'similar_experimental'
+  | 'predicted'
+  | 'unavailable'
+
+export type ConditionValue = {
+  value: number | string
+  unit?: string
+  normalized_value?: number
+  normalized_unit?: string
+  minimum?: number
+  maximum?: number
+  evidence_level?: EvidenceLevel
+  /** Populated ONLY for predictions. Experimental values never carry one. */
+  confidence?: number
+  original_text?: string
+  observation_count?: number
+}
+
+export type ChemicalEntity = {
+  name?: string
+  smiles?: string
+  role?: string
+  original_text?: string
+}
+
+export type Provenance = {
+  source_type?: string
+  source_id?: string
+  dataset_name?: string
+  title?: string
+  authors?: string[]
+  journal?: string
+  year?: number
+  doi?: string
+  patent_number?: string
+  /** Only present when the source supplied one; never built from a DOI. */
+  url?: string
+  license?: string
+}
+
+export type ReactionConditions = {
+  evidence_level: EvidenceLevel
+  reagents?: ChemicalEntity[]
+  catalysts?: ChemicalEntity[]
+  solvents?: ChemicalEntity[]
+  temperature?: ConditionValue
+  time?: ConditionValue
+  pressure?: ConditionValue
+  yield?: ConditionValue
+  workup?: string[]
+  notes?: string
+}
+
+export type Precedent = {
+  reaction_id: string
+  reaction_smiles?: string
+  conditions?: ReactionConditions
+  provenance?: Provenance
+  /** Chemical similarity - NOT a probability the reaction will work. */
+  similarity?: number
+  match_type?: string
+}
+
+export type ReactionEvidence = {
+  evidence_level: EvidenceLevel
+  conditions?: ReactionConditions
+  direct_precedents?: Precedent[]
+  similar_precedents?: Precedent[]
+  precedent_count?: number
+  provider?: string
+  dataset_version?: string
+  cached?: boolean
+  reason?: string
+}
+
+export type EvidenceSummary = {
+  steps: number
+  steps_with_experimental_evidence: number
+  steps_with_similar_evidence: number
+  steps_predicted: number
+  steps_without_evidence: number
+  evidence_coverage: number
+  /** Distinct source records (DOI / patent / record id) behind the matched
+   *  precedents. NOT a count of the literature. */
+  distinct_sources: number
+}
+
 export type Reaction = {
   reactants: RouteNode[]
   template_used: number | null
+  template_hash?: string | null
   template_smarts: string | null
+  /** Times this template appears in the USPTO template library. A library
+   *  count - not successful experiments, not a yield, not a probability. */
+  template_occurrence?: number | null
   score: number | null
   reaction_smiles: string
   classification: string | null
+  evidence?: ReactionEvidence
 }
 
 export type RouteNode = {
@@ -165,6 +272,7 @@ export type RouteNode = {
 
 export type Route = {
   route_id: number
+  evidence_summary?: EvidenceSummary
   state_score: number | null
   scores: Record<string, number>
   number_of_reactions: number
@@ -188,12 +296,28 @@ export const planRoutes = (
   smiles: string,
   top_n: number,
   iteration_limit: number,
+  include_conditions = false,
 ) =>
   post<Plan>(
     '/retrosynthesis/plan',
-    { smiles, top_n, iteration_limit, include_images: true },
+    { smiles, top_n, iteration_limit, include_images: true, include_conditions },
     300_000,
   )
+
+export type EvidenceStatus = {
+  provider: string
+  provider_display_name: string
+  available: boolean
+  /** Size of the indexed corpus that is actually searched. */
+  indexed_reactions?: number
+  coverage_note?: string
+  dataset_version?: string
+  data_license?: string
+  prediction_model: { provider: string; available: boolean; note?: string }
+}
+
+export const evidenceStatus = () =>
+  request<EvidenceStatus>('/retrosynthesis/evidence/status', undefined, 8_000)
 
 export type Health = {
   status: string

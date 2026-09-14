@@ -14,7 +14,9 @@ import {
   type SearchOutcome,
 } from './workspaces/results'
 import {
+  API_BASE,
   ApiError,
+  evidenceStatus as fetchEvidenceStatus,
   exactSearch,
   listProperties,
   moleculeStats,
@@ -25,6 +27,7 @@ import {
   retroHealth,
   similaritySearch,
   substructureSearch,
+  type EvidenceStatus,
   type Plan,
   type Prediction,
   type PropertySpec,
@@ -112,6 +115,8 @@ export default function App() {
   // per-workspace options
   const [iterationLimit, setIterationLimit] = useState(100)
   const [topRoutes, setTopRoutes] = useState(5)
+  const [includeConditions, setIncludeConditions] = useState(true)
+  const [evidence, setEvidence] = useState<EvidenceStatus | null>(null)
   const [searchMode, setSearchMode] = useState<SearchOutcome['mode']>('similarity')
   const [topN, setTopN] = useState(10)
   const [minSimilarity, setMinSimilarity] = useState(0)
@@ -152,6 +157,15 @@ export default function App() {
       .then((body) => setStatus((s) => ({ ...s, moleculeCount: body.total })))
       .catch(() => undefined)
   }, [status.up, status.moleculeCount])
+
+  //  Fetched once so the UI can name the corpus that is actually searched and
+  //  its size, instead of letting "evidence" read as "the literature".
+  useEffect(() => {
+    if (!status.up || evidence) return
+    fetchEvidenceStatus()
+      .then(setEvidence)
+      .catch(() => undefined)
+  }, [status.up, evidence])
 
   useEffect(() => {
     if (!status.up || properties) return
@@ -240,7 +254,10 @@ export default function App() {
     try {
       let outcome: Outcome
       if (workspace === 'retrosynthesis') {
-        outcome = { kind: 'retrosynthesis', data: await planRoutes(trimmed, topRoutes, iterationLimit) }
+        outcome = {
+          kind: 'retrosynthesis',
+          data: await planRoutes(trimmed, topRoutes, iterationLimit, includeConditions),
+        }
       } else if (workspace === 'search') {
         outcome = { kind: 'search', data: await runSearch() }
       } else if (workspace === 'properties') {
@@ -325,6 +342,21 @@ export default function App() {
           <span>Reaction database</span>
           <input value="USPTO (only database loaded)" readOnly />
           <em>Templates derived from US patent reactions.</em>
+        </label>
+        <label className="checkbox">
+          <span>Experimental evidence</span>
+          <input
+            type="checkbox"
+            checked={includeConditions}
+            onChange={(e) => setIncludeConditions(e.target.checked)}
+          />
+          <em>
+            {evidence?.available
+              ? `Source: ${evidence.provider_display_name}. Coverage: ${
+                  evidence.indexed_reactions?.toLocaleString() ?? 'unknown'
+                } indexed reactions — a finite corpus, not a search of the literature.`
+              : 'No evidence source is configured; every step will report no verified evidence.'}
+          </em>
         </label>
       </div>
     ) : workspace === 'search' ? (
@@ -441,8 +473,8 @@ export default function App() {
 
         {status.up === false && (
           <div className="offline-bar">
-            Backend unreachable on <code>http://localhost:8000</code>. From the repo root:{' '}
-            <code>docker compose up -d</code> then <code>uvicorn backend.api.main:app --port 8000</code>.
+            Backend unreachable on <code>{API_BASE}</code>. From the repo root:{' '}
+            <code>docker compose up -d</code> then <code>uvicorn backend.api.main:app --port 8434</code>.
           </div>
         )}
 
@@ -588,7 +620,9 @@ export default function App() {
                   </div>
                 )}
 
-                {current.outcome.kind === 'retrosynthesis' && <RetroResults plan={current.outcome.data} />}
+                {current.outcome.kind === 'retrosynthesis' && (
+                  <RetroResults plan={current.outcome.data} evidenceStatus={evidence} />
+                )}
                 {current.outcome.kind === 'search' && <SearchResults outcome={current.outcome.data} />}
                 {current.outcome.kind === 'properties' && <PropertyResults prediction={current.outcome.data} />}
                 {current.outcome.kind === 'structure' && <StructureResults representation={current.outcome.data} />}

@@ -13,7 +13,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from backend.api import routes_qsar, routes_retrosynthesis, routes_search
+from backend.api import (
+    routes_conditions,
+    routes_qsar,
+    routes_retrosynthesis,
+    routes_search,
+)
 from backend.molrepr import search as molsearch
 from backend.qsar.service import QsarService
 from backend.retrosynthesis.service import RetrosynthesisService
@@ -65,6 +70,7 @@ app.add_middleware(
 app.include_router(routes_retrosynthesis.router)
 app.include_router(routes_search.router)
 app.include_router(routes_qsar.router)
+app.include_router(routes_conditions.router)
 
 
 @app.exception_handler(RequestValidationError)
