@@ -1,0 +1,1552 @@
+[
+  {
+    "target": "c1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccccc1-c1ccccc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "c1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccccc2C)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Fc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Fc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccccc1-c1ccc(F)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccccc2)c(C)c1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccc(C)cc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccc(C)cc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccc(C)cc2C)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccc(F)cc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccc(F)cc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccc(F)cc2)c(C)c1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "c1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(I)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "c1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(I)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccccc1-c1ccccc1",
+    "reactants": [
+      "c1ccc(I)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(I)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Fc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(I)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Fc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(I)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "c1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccccc2C)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Fc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Fc1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccccc1-c1ccc(F)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "O=C(O)c1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "O=C(O)c1ccc(-c2ccccc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1cc(C(=O)O)ccc1-c1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccc(C(=O)O)cc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "Cc1ccc(-c2ccc(C(=O)O)cc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "O=C(O)c1ccc(-c2ccc(F)cc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "O=C(O)c1ccc(-c2ccc(F)cc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[c:2] >> [c:1]-[Br].[c:2]-[B]([OH])[OH]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Suzuki"
+  },
+  {
+    "target": "O=C(Nc1ccccc1)c1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccccc1",
+      "c1ccc(N)cc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "O=C(NCc1ccccc1)c1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccccc1",
+      "NCc1ccccc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "CC(C)NC(=O)c1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccccc1",
+      "CC(C)N"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "O=C(Nc1ccccc1)c1ccc(Cl)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "c1ccc(N)cc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "O=C(Nc1ccccc1)c1ccc(Cl)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "Cc1cc(Cl)ccc1C(=O)Nc1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "c1ccc(N)cc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "O=C(NCc1ccccc1)c1ccc(Cl)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "NCc1ccccc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "O=C(NCc1ccccc1)c1ccc(Cl)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "Cc1cc(Cl)ccc1C(=O)NCc1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "NCc1ccccc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "CC(C)NC(=O)c1ccc(Cl)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "CC(C)N"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "CC(C)NC(=O)c1ccc(Cl)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "CC(=O)Nc1ccccc1",
+    "reactants": [
+      "CC(=O)O",
+      "c1ccc(N)cc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "CC(=O)NCc1ccccc1",
+    "reactants": [
+      "CC(=O)O",
+      "NCc1ccccc1"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "CC(=O)NC(C)C",
+    "reactants": [
+      "CC(=O)O",
+      "CC(C)N"
+    ],
+    "template": "[C:1](=[O:2])-[N:3] >> [C:1](=[O:2])-[OH].[N;H2,H1:3]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Amidation"
+  },
+  {
+    "target": "CCOC(=O)c1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccccc1",
+      "CCO"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "CCOC(=O)c1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccccc1"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "CCOC(=O)c1ccccc1C",
+    "reactants": [
+      "O=C(O)c1ccccc1",
+      "CCO"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "COC(=O)c1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccccc1",
+      "CO"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "COC(=O)c1ccccc1C",
+    "reactants": [
+      "O=C(O)c1ccccc1",
+      "CO"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "CCOC(=O)c1ccc(Cl)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "CCO"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "COC(=O)c1ccc(Cl)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "CO"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "COC(=O)c1ccc(Cl)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "COC(=O)c1ccc(Cl)cc1C",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "CO"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "CCOC(C)=O",
+    "reactants": [
+      "CC(=O)O",
+      "CCO"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "COC(C)=O",
+    "reactants": [
+      "CC(=O)O",
+      "CO"
+    ],
+    "template": "[C:1](=[O:2])-[O:3]-[C:4] >> [C:1](=[O:2])-[OH].[O;H1:3]-[C:4]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "Esterification"
+  },
+  {
+    "target": "OB(Oc1ccccc1)c1ccccc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "OB(Oc1ccccc1)c1ccccc1",
+    "reactants": [
+      "c1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccccc1OB(O)c1ccccc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(B(O)Oc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(B(O)Oc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "OB(Oc1ccccc1)c1ccc(F)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "c1ccc(Nc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "c1ccc(N)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "c1ccc(Nc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "c1ccc(CNc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "NCc1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "c1ccc(Oc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "c1ccc(O)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "c1ccc(Oc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CCOc1ccccc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "CCO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CCOc1ccccc1",
+    "reactants": [
+      "c1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "COc1ccccc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "CO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "COc1ccccc1",
+    "reactants": [
+      "c1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CC(C)Nc1ccccc1",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "CC(C)N"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccccc1NC(C)C",
+    "reactants": [
+      "c1ccc(Br)cc1",
+      "CC(C)N"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(OB(O)c2ccccc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(OB(O)c2ccccc2)c(C)c1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(OB(O)c2ccc(C)cc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(OB(O)c2ccc(C)cc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(B(O)Oc2ccc(C)cc2C)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(OB(O)c2ccc(F)cc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(Nc2ccccc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "c1ccc(N)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(Nc2ccccc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(NCc2ccccc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "NCc1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(NCc2ccccc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(Oc2ccccc2)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "c1ccc(O)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CCOc1ccc(C)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "CCO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CCOc1ccc(C)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CCOc1ccc(C)cc1C",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "CCO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "COc1ccc(C)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "CO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(NC(C)C)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1",
+      "CC(C)N"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(NC(C)C)cc1",
+    "reactants": [
+      "Cc1ccc(Br)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "OB(Oc1ccccc1)c1ccccc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "OB(Oc1ccccc1)c1ccccc1",
+    "reactants": [
+      "c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccccc1OB(O)c1ccccc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(B(O)Oc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(B(O)Oc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "OB(Oc1ccccc1)c1ccc(F)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "OB(Oc1ccccc1)c1ccc(F)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccccc1OB(O)c1ccc(F)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "c1ccc(Nc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "c1ccc(N)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "c1ccc(Nc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "c1ccc(CNc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "NCc1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "c1ccc(Oc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "c1ccc(O)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "c1ccc(Oc2ccccc2)cc1",
+    "reactants": [
+      "c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CCOc1ccccc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "CCO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CCOc1ccccc1",
+    "reactants": [
+      "c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CCOc1ccccc1C",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "CCO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "COc1ccccc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "CO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "COc1ccccc1",
+    "reactants": [
+      "c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CC(C)Nc1ccccc1",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "CC(C)N"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CC(C)Nc1ccccc1",
+    "reactants": [
+      "c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccccc1NC(C)C",
+    "reactants": [
+      "c1ccc(Cl)cc1",
+      "CC(C)N"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(Oc1ccc(B(O)O)cc1)c1ccccc1",
+    "reactants": [
+      "OB(O)c1ccc(F)cc1",
+      "O=C(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(Oc1ccc(B(O)O)cc1)c1ccccc1",
+    "reactants": [
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(O)c1ccc(OB(O)c2ccccc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(O)c1ccc(OB(O)c2ccccc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1cc(C(=O)O)ccc1OB(O)c1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "OB(O)c1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(B(O)Oc2ccc(C(=O)O)cc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(B(O)Oc2ccc(C(=O)O)cc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1ccc(B(O)Oc2ccc(C(=O)O)cc2C)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "OB(O)c1ccc(C)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(O)c1ccc(OB(O)c2ccc(F)cc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(O)c1ccc(OB(O)c2ccc(F)cc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(O)c1ccc(Nc2ccccc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "c1ccc(N)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1cc(C(=O)O)ccc1Nc1ccccc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "c1ccc(N)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(O)c1ccc(NCc2ccccc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "NCc1ccccc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(O)c1ccc(NCc2ccccc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(O)c1ccc(Oc2ccccc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "c1ccc(O)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "O=C(O)c1ccc(Oc2ccccc2)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CCOc1ccc(C(=O)O)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "CCO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "COc1ccc(C(=O)O)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "CO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "COc1ccc(C(=O)O)cc1C",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "CO"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CC(C)Nc1ccc(C(=O)O)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1",
+      "CC(C)N"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CC(C)Nc1ccc(C(=O)O)cc1",
+    "reactants": [
+      "O=C(O)c1ccc(Cl)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CC(=O)Oc1ccc(B(O)O)cc1",
+    "reactants": [
+      "OB(O)c1ccc(F)cc1",
+      "CC(=O)O"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "CC(=O)Oc1ccc(B(O)O)cc1C",
+    "reactants": [
+      "OB(O)c1ccc(F)cc1",
+      "CC(=O)O"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "OB(O)c1ccc(Nc2ccccc2)cc1",
+    "reactants": [
+      "OB(O)c1ccc(F)cc1",
+      "c1ccc(N)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "OB(O)c1ccc(Nc2ccccc2)cc1",
+    "reactants": [
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "OB(O)c1ccc(Oc2ccccc2)cc1",
+    "reactants": [
+      "OB(O)c1ccc(F)cc1",
+      "c1ccc(O)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MATCH",
+    "perturbation": "None",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "OB(O)c1ccc(Oc2ccccc2)cc1",
+    "reactants": [
+      "OB(O)c1ccc(F)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "IncompleteRoute",
+    "reaction_type": "SNAr"
+  },
+  {
+    "target": "Cc1cc(B(O)O)ccc1Oc1ccccc1",
+    "reactants": [
+      "OB(O)c1ccc(F)cc1",
+      "c1ccc(O)cc1"
+    ],
+    "template": "[c:1]-[O,N:2] >> [c:1]-[F].[O,N;H1,H2:2]",
+    "ground_truth": "MISMATCH",
+    "perturbation": "RegioSkeleton",
+    "reaction_type": "SNAr"
+  }
+]

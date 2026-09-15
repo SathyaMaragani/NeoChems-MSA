@@ -72,6 +72,8 @@ class Provenance:
     authors: Optional[list[str]] = None
     journal: Optional[str] = None
     year: Optional[int] = None
+    #  The DOI of the publication that deposited/curated the dataset (e.g. USPTO patent dataset). 
+    #  This is often NOT the publication where the specific experiment was performed!
     doi: Optional[str] = None
     patent_number: Optional[str] = None
     example_number: Optional[str] = None
@@ -209,7 +211,17 @@ class Precedent:
     reaction_smiles: Optional[str] = None
     conditions: Optional[ReactionConditions] = None
     provenance: Optional[Provenance] = None
+    
+    # Measured using the `reaction_difference_fp` (shows exact bond changes). Range: 0.0 - 1.0.
+    transformation_similarity: Optional[float] = None
+    # Measured using Morgan fingerprints of the reactants. Range: 0.0 - 1.0.
+    substrate_similarity: Optional[float] = None
+    # The weighted combined score used for ranking (currently 0.30 * trans + 0.70 * sub).
+    combined_similarity: Optional[float] = None
+    
+    # Deprecated fallback similarity, retains value of combined_similarity for backwards compat.
     similarity: Optional[float] = None
+    
     match_type: Optional[str] = None  # "exact" | "transformation" | "similar"
 
     def to_dict(self) -> dict:
@@ -220,6 +232,9 @@ class Precedent:
                 "conditions": self.conditions.to_dict() if self.conditions else None,
                 "provenance": self.provenance.to_dict() if self.provenance else None,
                 "similarity": self.similarity,
+                "transformation_similarity": self.transformation_similarity,
+                "substrate_similarity": self.substrate_similarity,
+                "combined_similarity": self.combined_similarity,
                 "match_type": self.match_type,
             }
         )

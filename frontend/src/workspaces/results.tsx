@@ -114,6 +114,113 @@ function CondRow({ label, value }: { label: string; value: string | null }) {
   )
 }
 
+function getStructuralStatusDisplay(status?: ValidationStatus) {
+  switch (status) {
+    case 'MATCH': return { icon: '🟢', text: 'Match' }
+    case 'PARTIAL_MATCH': return { icon: '🟡', text: 'Partial match' }
+    case 'MISMATCH': return { icon: '🟠', text: 'Disagreement — requires review' }
+    case 'MODEL_OUTPUT_INVALID': return { icon: '🔴', text: 'Invalid model output' }
+    case 'MODEL_UNAVAILABLE': return { icon: '⚪', text: 'Validation unavailable' }
+    case 'VALIDATION_ERROR':
+    default: return { icon: '⚪', text: 'Validation error' }
+  }
+}
+
+function getForwardStatusDisplay(status?: ValidationStatus) {
+  switch (status) {
+    case 'MATCH': return { icon: '🟢', text: 'Match' }
+    case 'PARTIAL_MATCH': return { icon: '🟡', text: 'Partial match' }
+    case 'MISMATCH': return { icon: '🟠', text: 'Forward-model disagreement — requires review' }
+    case 'MODEL_OUTPUT_INVALID': return { icon: '🔴', text: 'Invalid model output' }
+    case 'MODEL_UNAVAILABLE': return { icon: '⚪', text: 'Forward validation unavailable' }
+    case 'VALIDATION_ERROR':
+    default: return { icon: '⚪', text: 'Validation error' }
+  }
+}
+
+function ReactionAssessment({ reaction }: { reaction: Reaction }) {
+  const sVal = reaction.structural_validation
+  const fVal = reaction.forward_validation
+  const evidence = reaction.evidence
+  const assessment = reaction.assessment
+  
+  const sDisplay = getStructuralStatusDisplay(sVal?.status)
+  const fDisplay = getForwardStatusDisplay(fVal?.status)
+  
+  let eIcon = '⚪'
+  let eText = 'No verified evidence'
+  if (evidence) {
+    if (evidence.evidence_level === 'experimental') { eIcon = '🟢'; eText = 'Direct experimental precedent' }
+    else if (evidence.evidence_level === 'similar_experimental') { eIcon = '🟡'; eText = 'Similar experimental precedent' }
+    else if (evidence.evidence_level === 'predicted') { eIcon = '🟠'; eText = 'Predicted' }
+  }
+
+  return (
+    <div className="reaction-assessment">
+      <div className="assessment-summary-row">
+         <span>Structural consistency</span>
+         <span>{sDisplay.icon} {sDisplay.text}</span>
+      </div>
+      <div className="assessment-summary-row">
+         <span>Forward-model validation</span>
+         <span>{fDisplay.icon} {fDisplay.text}</span>
+      </div>
+      <div className="assessment-summary-row">
+         <span>Experimental evidence</span>
+         <span>{eIcon} {eText}</span>
+      </div>
+      
+      {assessment && (
+        <>
+          <hr style={{ margin: '12px 0', borderColor: 'var(--border)' }} />
+          <div className="assessment-summary-row" style={{ fontWeight: 600 }}>
+             <span>Why?</span>
+          </div>
+          <div className="muted small" style={{ marginTop: '4px' }}>
+            {assessment.interpretation}
+          </div>
+          {assessment.flags && assessment.flags.length > 0 && (
+            <div className="muted small" style={{ marginTop: '4px', color: '#ff9800' }}>
+              Flags: {assessment.flags.map(f => f.replace(/_/g, ' ')).join(', ')}
+            </div>
+          )}
+        </>
+      )}
+
+      <details style={{ marginTop: '16px' }}>
+        <summary className="muted">Technical details</summary>
+        <div className="assessment-details" style={{ marginTop: '8px' }}>
+          <div className="assessment-section">
+            <h4>Structural</h4>
+            <div className="cond-row">
+              <span className="cond-key">{sVal?.status || 'UNAVAILABLE'}</span>
+            </div>
+          </div>
+          
+          <div className="assessment-section">
+            <h4>Forward model</h4>
+            <div className="cond-row">
+              <span className="cond-key">{fVal?.status || 'UNAVAILABLE'}</span>
+            </div>
+            {fVal?.model && <CondRow label="Model" value={fVal.model} />}
+            {fVal?.predicted_products?.[0] && (
+               <CondRow label="Top prediction" value={fVal.predicted_products[0]} />
+            )}
+            {fVal?.inference_time_ms != null && (
+               <CondRow label="Inference" value={`${(fVal.inference_time_ms / 1000).toFixed(1)} s`} />
+            )}
+          </div>
+          
+          <div className="assessment-section">
+            <h4>Experimental evidence</h4>
+            {evidence && <ArrowConditions evidence={evidence} />}
+          </div>
+        </div>
+      </details>
+    </div>
+  )
+}
+
 /** The compact block that sits on the reaction arrow. */
 function ArrowConditions({ evidence }: { evidence: ReactionEvidence }) {
   const c = evidence.conditions
@@ -386,6 +493,47 @@ function leavesOf(node: RouteNode): RouteNode[] {
   return out
 }
 
+function RouteAssessmentPanel({ assessment, steps }: { assessment: import('../api').RouteAssessment, steps: any[] }) {
+  let icon = '⚪'
+  if (assessment.summary === 'STRONGLY_SUPPORTED') icon = '🟢'
+  else if (assessment.summary === 'SUPPORTED') icon = '🟢'
+  else if (assessment.summary === 'REVIEW_REQUIRED') icon = '🟠'
+
+  return (
+    <div className="route-assessment-panel" style={{ border: '1px solid var(--border)', borderRadius: '6px', padding: '16px', background: 'var(--surface)' }}>
+      <h4 style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-muted)' }}>ROUTE ASSESSMENT</h4>
+      <div style={{ fontSize: '16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {icon} {assessment.label.toUpperCase()}
+      </div>
+      
+      {assessment.flags && assessment.flags.length > 0 && (
+        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {assessment.flags.map(f => (
+            <div key={f} style={{ fontSize: '13px', color: '#ff9800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>⚠️</span> {f.replace(/_/g, ' ')}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {assessment.critical_steps && assessment.critical_steps.length > 0 && (
+        <div style={{ marginTop: '16px', fontSize: '13px' }}>
+          <strong style={{ color: 'var(--text)' }}>Critical steps:</strong>
+          <ul style={{ margin: '4px 0 0 0', paddingLeft: '20px', color: 'var(--text-muted)' }}>
+            {assessment.critical_steps.map((cs, idx) => {
+               // Find step index from steps array by comparing reaction_smiles
+               const stepIndex = steps.findIndex(s => s.reaction.reaction_smiles === cs.reaction_smiles)
+               return (
+                 <li key={idx}>Step {stepIndex + 1}</li>
+               )
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function RetroResults({
   plan,
   evidenceStatus,
@@ -473,6 +621,12 @@ export function RetroResults({
             </dl>
           </header>
 
+          {route.assessment && (
+            <div style={{ padding: '0 24px 24px' }}>
+              <RouteAssessmentPanel assessment={route.assessment} steps={steps} />
+            </div>
+          )}
+
           {route.evidence_summary && (
             <EvidenceCoverage
               summary={route.evidence_summary}
@@ -507,9 +661,7 @@ export function RetroResults({
                       {step.reaction.score != null &&
                         ` · policy ${step.reaction.score.toFixed(4)}`}
                     </span>
-                    {step.reaction.evidence && (
-                      <ArrowConditions evidence={step.reaction.evidence} />
-                    )}
+                    <ReactionAssessment reaction={step.reaction} />
                   </div>
                   <div className="rstep-group">
                     <MoleculeCard

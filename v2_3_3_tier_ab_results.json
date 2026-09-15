@@ -1,0 +1,18 @@
+{
+  "metrics": {
+    "tier_a": {
+      "total": 100,
+      "raw_exact": 81,
+      "canonical_exact": 0,
+      "connectivity_only": 0,
+      "invalid_smiles": 12,
+      "no_match": 7
+    },
+    "tier_b": {
+      "total": 100,
+      "true_negative": 71,
+      "false_positive": 29
+    }
+  },
+  "latency_sec_per_reaction": 5.132010967731476
+}

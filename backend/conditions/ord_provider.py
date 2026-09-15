@@ -4,15 +4,10 @@ Reads only the flattened index in Postgres - never a protobuf, never
 ord-schema. Ingestion lives in scripts/ingest_ord.py under a separate conda env,
 so the serving environment keeps AiZynthFinder's pins untouched.
 
-Retrieval is two-stage:
-
-  1. PREFILTER in Postgres using the RDKit cartridge's GiST-indexed Morgan
-     fingerprint on the major product. Cheap, and avoids scanning 216k rows.
-  2. RANK in Python on the reaction DIFFERENCE fingerprint, which keys on the
-     transformation rather than on how alike the molecules look overall.
-
-Stage 1 alone would return molecules that merely resemble the product; stage 2
-alone would require scanning everything. Neither is sufficient on its own.
+Retrieval uses V2.2 transformation-keyed indexing (hybrid strategy):
+  1. PREFILTER in Postgres using the transformation difference, substrate
+     Morgan fingerprints, and exact reaction centre matches.
+  2. RANK candidates by combining transformation and substrate similarity.
 """
 from __future__ import annotations
 
@@ -22,12 +17,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from backend.conditions import extract as ex
-from backend.conditions.normalize import (
-    NormalizedReaction,
-    normalize,
-    substrate_similarity,
-    transformation_similarity,
-)
+from backend.conditions.normalize import NormalizedReaction
 from backend.conditions.providers import LiteratureProvider
 from backend.conditions.schema import (
     ChemicalEntity,
@@ -90,11 +80,8 @@ class OrdProvider(LiteratureProvider):
     #: v3: similar-precedent retrieval was dead (the cartridge threshold GUC
     #: does not exist until an rdkit function is touched, and the exception was
     #: swallowed), so every cached v2 "unavailable" may be wrong.
-    #: v4/v5: prefilter and ranking retuned against the retrieval benchmark
-    #: (threshold 0.5->0.3, limit 400->1000, weights 0.65/0.35 -> 0.30/0.70,
-    #: floor 0.35->0.20). Any cached row predating this was produced by
-    #: different retrieval logic and must not be served alongside new results.
-    version = "5"
+    #: v6: migration to V2.2 transformation-keyed hybrid retrieval.
+    version = "6"
     display_name = "Open Reaction Database (indexed subset)"
 
     def __init__(self, pool_factory=None) -> None:
@@ -261,6 +248,8 @@ class OrdProvider(LiteratureProvider):
         evidence_level: EvidenceLevel,
         match_type: str,
         similarity: float | None = None,
+        transformation_similarity: float | None = None,
+        substrate_similarity: float | None = None,
     ) -> Precedent:
         return Precedent(
             reaction_id=row["reaction_id"],
@@ -268,6 +257,9 @@ class OrdProvider(LiteratureProvider):
             conditions=self._conditions(row, evidence_level),
             provenance=self._provenance(row),
             similarity=None if similarity is None else round(similarity, 4),
+            transformation_similarity=None if transformation_similarity is None else round(transformation_similarity, 4),
+            substrate_similarity=None if substrate_similarity is None else round(substrate_similarity, 4),
+            combined_similarity=None if similarity is None else round(similarity, 4),
             match_type=match_type,
         )
 
@@ -298,65 +290,55 @@ class OrdProvider(LiteratureProvider):
         if not self.available or not reaction.products:
             return []
 
-        #  Stage 1: cartridge prefilter on product similarity.
         try:
+            from backend.conditions.retrieval import hybrid, DEFAULT_THRESHOLDS
             with self._pool().connection() as conn:
-                #  The cartridge registers its GUCs only when its shared library
-                #  is loaded into the backend, which happens on first use of an
-                #  rdkit function in that session. Issuing the SET before that
-                #  raises UndefinedObject - and the except below would swallow
-                #  it, silently disabling this whole code path. Touch a function
-                #  first so the parameter exists.
-                conn.execute("SELECT morganbv_fp(mol_from_smiles('CC'::cstring))")
-                #  set_config(), not SET LOCAL: plain SET takes no bind
-                #  parameter, so "SET LOCAL rdkit.tanimoto_threshold = %s" is a
-                #  syntax error. set_config's third argument is is_local.
-                conn.execute(
-                    "SELECT set_config('rdkit.tanimoto_threshold', %s, true)",
-                    (str(PREFILTER_THRESHOLD),),
+                candidates = hybrid(
+                    conn, reaction,
+                    threshold=DEFAULT_THRESHOLDS["transformation"],
+                    limit=PREFILTER_LIMIT,
+                    substrate_threshold=DEFAULT_THRESHOLDS["substrate"]
                 )
-                rows = conn.execute(
-                    """SELECT reaction_id, reaction_smiles, reactants, products,
-                              conditions, provenance, dataset_version,
-                              tanimoto_sml(product_bfp,
-                                  morganbv_fp(mol_from_smiles(%s::cstring))) AS prod_sim
-                       FROM ord_reactions
-                       WHERE product_bfp %% morganbv_fp(mol_from_smiles(%s::cstring))
-                         AND reaction_key <> %s
-                       ORDER BY prod_sim DESC
-                       LIMIT %s""",
-                    (
-                        reaction.products[0], reaction.products[0],
-                        reaction.reaction_key, PREFILTER_LIMIT,
-                    ),
-                ).fetchall()
         except Exception:
             #  A retrieval failure must never break a retrosynthesis - but it
-            #  must not be silent either. A bare swallow here hid a dead
-            #  similarity path for the life of the first implementation.
-            #  No SMILES or reaction key is logged (see the privacy tests).
+            #  must not be silent either.
             logger.warning("similar-precedent prefilter failed", exc_info=True)
             return []
 
-        #  Stage 2: rank on the transformation, not just the product.
-        scored: list[tuple[float, dict]] = []
-        for row in rows:
-            try:
-                candidate = normalize(list(row["reactants"]), list(row["products"]))
-            except Exception:
-                continue
-            score = (
-                TRANSFORMATION_WEIGHT * transformation_similarity(reaction, candidate)
-                + SUBSTRATE_WEIGHT * substrate_similarity(reaction, candidate)
-            )
+        scored = []
+        for candidate in candidates:
+            score = candidate.combined(TRANSFORMATION_WEIGHT)
             if score >= min_similarity:
-                scored.append((score, row))
+                scored.append((score, candidate))
 
         scored.sort(key=lambda pair: -pair[0])
-        return [
-            self._precedent(row, EvidenceLevel.SIMILAR_EXPERIMENTAL, "similar", score)
-            for score, row in scored[:limit]
-        ]
+        top_candidates = [cand for score, cand in scored[:limit]]
+        top_ids = [cand.reaction_id for cand in top_candidates]
+
+        if not top_ids:
+            return []
+
+        rows = self._query(
+            "SELECT reaction_id, reaction_smiles, conditions, provenance, dataset_version "
+            "FROM ord_reactions WHERE reaction_id = ANY(%s)",
+            (top_ids,)
+        )
+        row_by_id = {row["reaction_id"]: row for row in rows}
+
+        precedents = []
+        for score, cand in scored[:limit]:
+            if cand.reaction_id in row_by_id:
+                precedents.append(
+                    self._precedent(
+                        row_by_id[cand.reaction_id], 
+                        EvidenceLevel.SIMILAR_EXPERIMENTAL, 
+                        "similar", 
+                        similarity=score,
+                        transformation_similarity=cand.transformation,
+                        substrate_similarity=cand.substrate
+                    )
+                )
+        return precedents
 
     def get_details(self, source_id: str) -> Optional[Precedent]:
         if not self.available:

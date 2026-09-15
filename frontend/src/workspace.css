@@ -479,3 +479,49 @@
 .settings-grid label.checkbox input[type='checkbox'] {
   width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;
 }
+
+.reaction-assessment {
+  margin-top: 12px;
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 0.9em;
+}
+.assessment-summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  list-style: none;
+  user-select: none;
+}
+.assessment-summary::-webkit-details-marker {
+  display: none;
+}
+.assessment-head {
+  padding-bottom: 6px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 6px;
+}
+.assessment-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+.assessment-details {
+  padding: 12px;
+  background-color: #111;
+  border-top: 1px solid #333;
+}
+.assessment-section {
+  margin-bottom: 12px;
+}
+.assessment-section:last-child {
+  margin-bottom: 0;
+}
+.assessment-section h4 {
+  margin: 0 0 6px 0;
+  font-size: 0.85em;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

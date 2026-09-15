@@ -60,6 +60,94 @@ def test_only_solved_routes_are_returned(client):
         assert all(leaf["is_stock_available"] for leaf in leaves(route["tree"]))
 
 
+def test_include_validation_false_invariant(client):
+    """Verify include_validation=False performs no inference and leaves routes exactly as they were."""
+    res_false = client.post("/retrosynthesis/plan", json={"smiles": ASPIRIN, "include_validation": False, "top_n": 2}).json()
+    res_true = client.post("/retrosynthesis/plan", json={"smiles": ASPIRIN, "include_validation": True, "top_n": 2}).json()
+    
+    assert "routes" in res_false
+    assert len(res_false["routes"]) > 0
+    assert len(res_false["routes"]) == len(res_true["routes"])
+    
+    route_false = res_false["routes"][0]
+    route_true = res_true["routes"][0]
+    
+    assert route_false["state_score"] == route_true["state_score"], "Score changed!"
+    
+    rxn_false = route_false["tree"]["reactions"][0]
+    rxn_true = route_true["tree"]["reactions"][0]
+    
+    assert "assessment" not in rxn_false
+    assert "structural_validation" not in rxn_false
+    assert "forward_validation" not in rxn_false
+    
+    assert "assessment" in rxn_true
+    assert "structural_validation" in rxn_true
+    assert "forward_validation" in rxn_true
+
+
+def test_include_conditions_false_invariant(client):
+    """Verify include_conditions=False skips all ORD queries and preserves old behavior."""
+    res_false = client.post("/retrosynthesis/plan", json={"smiles": ASPIRIN, "include_conditions": False, "top_n": 2}).json()
+    res_true = client.post("/retrosynthesis/plan", json={"smiles": ASPIRIN, "include_conditions": True, "top_n": 2}).json()
+    
+    assert len(res_false["routes"]) == len(res_true["routes"])
+    assert res_false["routes"][0]["state_score"] == res_true["routes"][0]["state_score"]
+    
+    rxn_false = res_false["routes"][0]["tree"]["reactions"][0]
+    rxn_true = res_true["routes"][0]["tree"]["reactions"][0]
+    
+    assert "evidence" not in rxn_false
+    assert "evidence" in rxn_true
+
+
+from unittest.mock import patch
+
+@patch("backend.retrosynthesis.validation.RDKitTemplateReversalModel.validate_step")
+def test_validation_error_invariant(mock_struct_val, client):
+    """Verify that a validation failure does not drop routes or change scores."""
+    from backend.retrosynthesis.validation import ValidationStatus, ForwardValidationResult
+    mock_struct_val.return_value = ForwardValidationResult(status=ValidationStatus.VALIDATION_ERROR, error="mock")
+    
+    # We must patch AiZynthFinder to be deterministic, or just assert on the first route's structure
+    res_baseline = client.post("/retrosynthesis/plan", json={"smiles": ASPIRIN, "include_validation": False, "top_n": 1}).json()
+    res_error = client.post("/retrosynthesis/plan", json={"smiles": ASPIRIN, "include_validation": True, "top_n": 1}).json()
+    
+    assert len(res_error["routes"]) > 0
+    assert len(res_error["routes"]) == len(res_baseline["routes"]), "Route count changed due to error!"
+    # The score should be identical as AiZynthFinder isn't influenced by validation
+    assert abs(res_error["routes"][0]["state_score"] - res_baseline["routes"][0]["state_score"]) < 1e-4, "Score changed due to error!"
+    
+    rxn = res_error["routes"][0]["tree"]["reactions"][0]
+    from backend.retrosynthesis.assessment import AssessmentSummary
+    assert rxn["assessment"]["summary"] in [
+        AssessmentSummary.INSUFFICIENT_EVIDENCE.value,
+        AssessmentSummary.REVIEW_REQUIRED.value,
+        AssessmentSummary.SUPPORTED.value,
+    ]
+    assert rxn["assessment"]["route_score_affected"] is False
+
+
+@patch("backend.retrosynthesis.validation.MicroserviceLearnedForwardModel.validate_step")
+def test_model_unavailable_invariant(mock_forward_eval, client):
+    """Verify that forward model unavailability does not drop routes or change scores."""
+    from backend.retrosynthesis.validation import ValidationStatus, ForwardValidationResult
+    mock_forward_eval.return_value = ForwardValidationResult(status=ValidationStatus.MODEL_UNAVAILABLE, error="mock")
+    
+    res_baseline = client.post("/retrosynthesis/plan", json={"smiles": ASPIRIN, "include_validation": False, "top_n": 1}).json()
+    res_unavailable = client.post("/retrosynthesis/plan", json={"smiles": ASPIRIN, "include_validation": True, "top_n": 1}).json()
+    
+    assert len(res_unavailable["routes"]) > 0
+    assert len(res_unavailable["routes"]) == len(res_baseline["routes"]), "Route count changed due to unavailable!"
+    assert abs(res_unavailable["routes"][0]["state_score"] - res_baseline["routes"][0]["state_score"]) < 1e-4, "Score changed due to unavailable!"
+    
+    rxn = res_unavailable["routes"][0]["tree"]["reactions"][0]
+    assert rxn["assessment"]["route_score_affected"] is False
+
+
+
+
+
 def test_unsolved_molecule_returns_no_routes(client):
     """Ibuprofen does not solve in the default 100 iterations - we must not
     return the top-scoring unsolved fragment as if it were a route."""

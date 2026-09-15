@@ -119,7 +119,7 @@ experiments — or says ⚪ when nothing is known.
 - [x] `LiteratureProvider` / `ConditionPredictionProvider` interfaces + `NullProvider`
 - [x] Substrate-specific reaction identity (sha256 of sorted canonical reactants >> products)
 - [x] ORD provider: 216,681 reactions, 6 datasets, ingested selectively from the Hugging Face parquet mirror
-- [x] Two-stage retrieval — cartridge GiST prefilter, then reaction-difference-fingerprint reranking
+- [x] V2.2 Transformation-keyed hybrid retrieval — using exact centre hashes, structural transformation fingerprints, and substrate fingerprints to prefilter and score.
 - [x] Aggregation across precedents: median + observed range + observation count
 - [x] Postgres evidence cache keyed on `(reaction_key, provider, provider_version, dataset_version)` — no Redis
 - [x] `POST /retrosynthesis/plan` gains `include_conditions`, **default off**
@@ -139,7 +139,7 @@ experiments — or says ⚪ when nothing is known.
 - **Evidence can never promote an unsolved route.** Ibuprofen stays unsolved at 100 iterations with five precedents on a step; asserted by test.
 - ⚠️ **The similar-precedent path was dead on arrival** and nobody could tell. Two stacked bugs in three lines, both swallowed by a bare `except` — see the Known defects section of [reaction-condition-intelligence.md](reaction-condition-intelligence.md). Fixing it changed aspirin from "no evidence" to 6 similar precedents. Every swallow in the subsystem now logs.
 - **Retrieval is now benchmarked** against ORD's own `REACTION_TYPE` labels (90,035 labelled reactions, 42 types) — see [retrieval-benchmark.md](retrieval-benchmark.md). All three tuned constants were guessed wrong: the weighting was on the wrong side (substrate matters more than transformation), the 0.35 floor was the single worst setting tested, and the prefilter threshold was too tight. Retuned: P@1 0.434 → 0.516, silent 43% → 28%.
-- **The ranking is fine; recall is the problem.** Given a relevant candidate, the reranker ranks it first 92% of the time. But stage 1 offers one for only 56% of queries, because it retrieves by product similarity — the wrong key for transformation search.
+- **The ranking is fine; recall is the problem.** Addressed in V2.2. Stage 1 now offers candidates based on transformation difference, substrate fingerprints, and exact reaction centers. This increases the relevant candidate offering rate compared to V2.1 product-based prefiltering.
 
 ---
 
@@ -166,7 +166,7 @@ experiments — or says ⚪ when nothing is known.
 ### Next up
 
 - [x] ~~**Retrieval benchmark for the evidence layer**~~ — done; see [retrieval-benchmark.md](retrieval-benchmark.md).
-- [ ] **Transformation-keyed stage 1** — store the reaction difference fingerprint in Postgres with its own index, so retrieval is keyed on the transformation rather than on product-molecule similarity. This is the measured bottleneck (only 56% of queries are offered a relevant candidate) and it also makes the benchmark-preferred threshold affordable, since candidate fingerprints stop being recomputed per request.
+- [x] ~~**Transformation-keyed stage 1**~~ — Done in V2.2. Stored the reaction difference fingerprint in Postgres with its own index, so retrieval is keyed on the transformation rather than on product-molecule similarity.
 - [ ] **Forward reaction validation** — run each proposed step through a forward model and flag steps whose predicted product is not the target. Directly addresses the class of problem the ibuprofen route exposed.
 - [ ] **Patent evidence provider** — ORD carries 0% patent provenance, and much of medicinal/process chemistry lives in patents. One new `LiteratureProvider` subclass.
 - [ ] **Toxicity (Tox21)** — the substantive next capability. ~7,800 molecules, 12 assays, classification not regression, ~5% actives. Breaks several assumptions this codebase was built on, in useful ways.

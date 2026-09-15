@@ -250,6 +250,23 @@ export type EvidenceSummary = {
   distinct_sources: number
 }
 
+export type ValidationStatus = 
+  | 'MATCH' 
+  | 'PARTIAL_MATCH' 
+  | 'MISMATCH' 
+  | 'MODEL_OUTPUT_INVALID'
+  | 'MODEL_UNAVAILABLE'
+  | 'VALIDATION_ERROR'
+
+export type ValidationResult = {
+  status: ValidationStatus
+  interpretation?: string
+  model?: string
+  predicted_products?: string[]
+  inference_time_ms?: number
+  error?: string
+}
+
 export type Reaction = {
   reactants: RouteNode[]
   template_used: number | null
@@ -262,6 +279,23 @@ export type Reaction = {
   reaction_smiles: string
   classification: string | null
   evidence?: ReactionEvidence
+  structural_validation?: ValidationResult
+  forward_validation?: ValidationResult
+  assessment?: ReactionAssessment
+}
+
+export type AssessmentSummary = 
+  | 'STRONG_SUPPORT'
+  | 'SUPPORTED'
+  | 'REVIEW_REQUIRED'
+  | 'INSUFFICIENT_EVIDENCE'
+
+export type ReactionAssessment = {
+  summary: AssessmentSummary
+  label: string
+  interpretation: string
+  flags: string[]
+  route_score_affected: boolean
 }
 
 export type RouteNode = {
@@ -270,9 +304,18 @@ export type RouteNode = {
   reactions: Reaction[]
 }
 
+export type RouteAssessment = {
+  summary: AssessmentSummary
+  label: string
+  critical_steps: { reaction_smiles: string; reason: string; flags: string[] }[]
+  flags: string[]
+  route_score_affected: boolean
+}
+
 export type Route = {
   route_id: number
   evidence_summary?: EvidenceSummary
+  assessment?: RouteAssessment
   state_score: number | null
   scores: Record<string, number>
   number_of_reactions: number
@@ -297,10 +340,11 @@ export const planRoutes = (
   top_n: number,
   iteration_limit: number,
   include_conditions = false,
+  include_validation = false,
 ) =>
   post<Plan>(
     '/retrosynthesis/plan',
-    { smiles, top_n, iteration_limit, include_images: true, include_conditions },
+    { smiles, top_n, iteration_limit, include_images: true, include_conditions, include_validation },
     300_000,
   )
 

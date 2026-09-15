@@ -101,6 +101,78 @@ def _enrich_with_evidence(node: dict, conditions_service) -> dict:
     return node
 
 
+def _enrich_with_validation(node: dict, structural_model, learned_model) -> dict:
+    """Attach forward validation to every reaction in a route tree."""
+    import concurrent.futures
+    
+    for reaction in node.get("reactions", []):
+        target_smiles = node.get("molecule_smiles", "")
+        reactants_smiles = [c.get("molecule_smiles", "") for c in reaction.get("reactants", [])]
+        template_smarts = reaction.get("template_smarts")
+        
+        # Define tasks for concurrent execution
+        def run_structural():
+            try:
+                if not structural_model: return None
+                return structural_model.validate_step(
+                    target_product_smiles=target_smiles,
+                    reactants_smiles=reactants_smiles,
+                    template_smarts=template_smarts,
+                )
+            except Exception as e:
+                logger.warning("Structural validation failed", exc_info=True)
+                return {"status": "VALIDATION_ERROR", "error": str(e)}
+
+        def run_learned():
+            try:
+                if not learned_model: return None
+                return learned_model.validate_step(
+                    target_product_smiles=target_smiles,
+                    reactants_smiles=reactants_smiles,
+                )
+            except Exception as e:
+                logger.warning("Learned validation failed", exc_info=True)
+                return {"status": "VALIDATION_ERROR", "error": str(e)}
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            future_s = executor.submit(run_structural)
+            future_l = executor.submit(run_learned)
+            
+            s_res = future_s.result()
+            l_res = future_l.result()
+            
+        if s_res:
+            reaction["structural_validation"] = s_res.to_dict() if hasattr(s_res, 'to_dict') else s_res
+        if l_res:
+            reaction["forward_validation"] = l_res.to_dict() if hasattr(l_res, 'to_dict') else l_res
+            
+        for child in reaction.get("reactants", []):
+            _enrich_with_validation(child, structural_model, learned_model)
+    return node
+
+
+def _enrich_with_assessment(node: dict) -> dict:
+    """Combine evidence and validation signals into a chemist-facing assessment."""
+    from backend.retrosynthesis.assessment import generate_reaction_assessment
+    
+    for reaction in node.get("reactions", []):
+        s_val = reaction.get("structural_validation", {})
+        l_val = reaction.get("forward_validation", {})
+        ev = reaction.get("evidence", {})
+        
+        assessment = generate_reaction_assessment(
+            structural_status=s_val.get("status"),
+            forward_status=l_val.get("status"),
+            ord_level=ev.get("evidence_level")
+        )
+        reaction["assessment"] = assessment
+        
+        for child in reaction.get("reactants", []):
+            _enrich_with_assessment(child)
+            
+    return node
+
+
 def _evidence_summary(tree: dict) -> dict:
     """Route-level coverage: how much of this route is actually supported."""
     counts = {
@@ -145,6 +217,44 @@ def _evidence_summary(tree: dict) -> dict:
     }
 
 
+def _validation_summary(tree: dict) -> dict:
+    """Route-level coverage: how many steps were successfully validated."""
+    counts = {
+        "MATCH": 0,
+        "PARTIAL_MATCH": 0,
+        "MISMATCH": 0,
+        "MODEL_UNAVAILABLE": 0,
+        "VALIDATION_ERROR": 0,
+    }
+    
+    def walk(node: dict) -> None:
+        for reaction in node.get("reactions", []):
+            s_val = reaction.get("structural_validation") or {}
+            l_val = reaction.get("forward_validation") or {}
+            
+            s_status = s_val.get("status", "VALIDATION_ERROR")
+            if s_status in counts:
+                counts[s_status] += 1
+                
+            l_status = l_val.get("status", "MODEL_UNAVAILABLE")
+            if l_status in counts:
+                counts[l_status] += 1
+                
+            for child in reaction.get("reactants", []):
+                walk(child)
+
+    walk(tree)
+    # Total is based on structural steps
+    total = sum(counts[k] for k in ["MATCH", "PARTIAL_MATCH", "MISMATCH", "VALIDATION_ERROR"] if counts.get(k))
+    return {
+        "steps_total": total,
+        "steps_match": counts["MATCH"],
+        "steps_partial_match": counts["PARTIAL_MATCH"],
+        "steps_mismatch": counts["MISMATCH"],
+        "steps_error": counts["MODEL_UNAVAILABLE"] + counts["VALIDATION_ERROR"],
+    }
+
+
 def _png_base64(image) -> Optional[str]:
     if image is None:
         return None
@@ -178,6 +288,28 @@ class RetrosynthesisService:
         self.load_time_seconds = round(time.time() - started, 2)
         self.ready = True
         self._conditions = None
+        self._forward_model = None
+        self._learned_forward_model = None
+
+    def _get_forward_model(self):
+        if self._forward_model is None:
+            try:
+                from backend.retrosynthesis.validation import RDKitTemplateReversalModel
+                self._forward_model = RDKitTemplateReversalModel()
+            except Exception:
+                logger.warning("structural model unavailable", exc_info=False)
+                return None
+        return self._forward_model
+        
+    def _get_learned_forward_model(self):
+        if self._learned_forward_model is None:
+            try:
+                from backend.retrosynthesis.validation import MicroserviceLearnedForwardModel
+                self._learned_forward_model = MicroserviceLearnedForwardModel()
+            except Exception:
+                logger.warning("learned forward model unavailable", exc_info=False)
+                return None
+        return self._learned_forward_model
 
     def _conditions_service(self):
         """Built on first use, not at startup: the evidence layer is optional and
@@ -199,6 +331,7 @@ class RetrosynthesisService:
         iteration_limit: int = DEFAULT_ITERATION_LIMIT,
         include_images: bool = False,
         include_conditions: bool = False,
+        include_validation: bool = False,
     ) -> dict:
         """Plan retrosynthetic routes for `smiles`.
 
@@ -262,6 +395,19 @@ class RetrosynthesisService:
                     for entry in routes:
                         _enrich_with_evidence(entry["tree"], conditions_service)
                         entry["evidence_summary"] = _evidence_summary(entry["tree"])
+
+            if include_validation and routes:
+                structural_model = self._get_forward_model()
+                learned_model = self._get_learned_forward_model()
+                for entry in routes:
+                    _enrich_with_validation(entry["tree"], structural_model, learned_model)
+                    entry["validation_summary"] = _validation_summary(entry["tree"])
+
+            if routes and (include_validation or include_conditions):
+                from backend.retrosynthesis.route_assessment import aggregate_route_assessment
+                for entry in routes:
+                    _enrich_with_assessment(entry["tree"])
+                    entry["assessment"] = aggregate_route_assessment(entry["tree"])
 
             return {
                 "target_smiles": self._finder.target_smiles,

@@ -47,6 +47,13 @@ class PlanRequest(BaseModel):
             "enrichment failure never fails the plan."
         ),
     )
+    include_validation: bool = Field(
+        False,
+        description=(
+            "Attach forward-model validation to every reaction step to confirm "
+            "the precursors actually produce the target product. Opt-in."
+        ),
+    )
 
 
 @router.get("/health")
@@ -74,6 +81,7 @@ def plan(request: PlanRequest) -> dict:
             iteration_limit=request.iteration_limit,
             include_images=request.include_images,
             include_conditions=request.include_conditions,
+            include_validation=request.include_validation,
         )
     except InvalidRequestError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
