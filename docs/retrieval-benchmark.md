@@ -221,12 +221,52 @@ That leaves 217 of the 400 queries (14 types, 62 campaigns), leakage-controlled:
 
 The gain comes from chemistry ORD barely covers: fluorination 0.05 → 0.84,
 hydrogenation 0.09 → 0.73, Heck 0.00 → 0.56, cyanation 0.11 → 0.44. **One
-regression: borylation 0.90 → 0.58** (19 queries), which has not been
-diagnosed. Stille is flat at 0.30.
+regression: borylation 0.90 → 0.58** (19 queries), diagnosed below. Stille is
+flat at 0.30. The per-type figures in this table are inflated by repeated
+queries; the distinct-reaction numbers below are the ones to use.
 
 The human-graded recall slip above is real but is outweighed. These
 rule-graded numbers are not comparable to the human-graded ones earlier in this
 document: they use a different grader and a different query subset.
+
+### The borylation regression, and the queries were mostly repeats
+
+**The benchmark samples repeats.** HTE campaigns run one reaction under many
+conditions, so plain sampling draws the same reaction again and again: the 217
+graded queries above are only **67 distinct reactions** (Heck: 16 queries, 2
+reactions), and the 400 human-graded queries only about 205. `--distinct` samples
+one query per reaction. It is off by default so the recorded numbers above
+still reproduce. **Use it.**
+
+**The regression was one reaction.** The 19 borylation queries were 5
+reactions, and one of them, a C–H borylation of methyl 2-chloroisonicotinate
+repeated 6 times, flipped from hit to miss. Production's USPTO top-1 was a
+*Suzuki of the same chloropyridine*. Its reactants (aryl-Bpin + the
+chloropyridine) share pinacol-boronate bits and the whole chloropyridine with
+the query's (B₂pin₂ + the chloropyridine), so substrate similarity was 0.68–0.72,
+while transformation similarity correctly said "different chemistry"
+(0.27–0.46, against 0.80 for the real borylation ranked second). At 0.70
+substrate weight, the wrong chemistry won. That is the failure the weighting
+caveat predicted for non-HTE data, and USPTO is the first non-HTE data here.
+
+**Fix: transformation weight 0.30 → 0.40.** Swept on validation and confirmed
+once on the held-out test split, distinct reactions, leakage-controlled:
+
+| Test split | ORD only | + USPTO, 0.30 | **+ USPTO, 0.40** |
+| --- | --- | --- | --- |
+| P@1, rule-graded, all candidates (100 reactions) | 0.570 | 0.660 | **0.720** |
+| P@1, human-graded, ORD candidates only (212 reactions) | – | 0.434 | **0.443** |
+
+On test, 0.40 matches or beats 0.30 in every type: borylation 0.63 → 0.75,
+Suzuki 0.84 → 0.95, aryl C–N/C–O 0.77 → 0.85, hydrogenation 0.76 → 0.82.
+On validation, 0.6 scored higher on the rules (0.718 against 0.709) but cost 3
+points on human labels (0.385 against 0.419), so it was not taken. Patents
+still help on data never tuned on: 0.570 → 0.720.
+
+```bash
+python scripts/benchmark_retrieval.py --split test --strategies hybrid --distinct --grader rules
+python scripts/benchmark_retrieval.py --split test --strategies hybrid --distinct --grader human
+```
 
 ```bash
 python scripts/reaction_rules.py        # grader vs human labels

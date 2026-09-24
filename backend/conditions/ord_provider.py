@@ -41,11 +41,19 @@ from backend.conditions.schema import (
 #: chemistry is industrial HTE, where each reaction-type campaign uses
 #: characteristic substrate classes. Substrate similarity may therefore be
 #: partly proxying "which campaign is this from", which would not generalise
-#: outside HTE data. 0.30 sits at the measured optimum; anything in 0.2-0.4 is
+#: outside HTE data. 0.30 sat at the measured optimum; anything in 0.2-0.4 was
 #: within noise, and a higher transformation share may well be safer on
 #: non-HTE chemistry. Re-run the benchmark before trusting this elsewhere.
-TRANSFORMATION_WEIGHT = 0.30
-SUBSTRATE_WEIGHT = 0.70
+#:
+#: 0.40 since USPTO (non-HTE) joined the index, and the caveat above came true.
+#: At 0.30, "same substrates, different chemistry" outranked the right
+#: chemistry: a C-H borylation's top precedent was a Suzuki of the same
+#: chloropyridine, because pinacol boronate bits sit in both reactant sets.
+#: Measured on distinct reactions (--distinct), held-out test split:
+#: rule-graded P@1 0.660 -> 0.720 with no type worse, human-graded 0.434 ->
+#: 0.443. 0.6 scores higher on rules but costs 3 points on human labels.
+TRANSFORMATION_WEIGHT = 0.40
+SUBSTRATE_WEIGHT = 0.60
 
 #: Cartridge similarity floor for the prefilter, loosened from 0.5 on benchmark
 #: evidence. At 0.5 only 52.6% of queries were offered a single relevant
@@ -83,7 +91,8 @@ class OrdProvider(LiteratureProvider):
     #: v6: migration to V2.2 transformation-keyed hybrid retrieval.
     #: v7: kind-coded patent numbers (US07842696B2, 72% of USPTO rows) now get
     #: links; evidence cached under v6 carries those precedents without one.
-    version = "7"
+    #: v8: ranking weight 0.30 -> 0.40 transformation; similar precedents change.
+    version = "8"
     display_name = "Open Reaction Database + USPTO patent reactions (indexed)"
 
     def __init__(self, pool_factory=None) -> None:

@@ -261,6 +261,10 @@ def main() -> int:
                         help="human: ORD REACTION_TYPE labels, which leave USPTO "
                              "ungraded. rules: scripts/reaction_rules.py labels "
                              "query and every candidate alike")
+    parser.add_argument("--distinct", action="store_true",
+                        help="one query per distinct reaction. HTE campaigns repeat "
+                             "a reaction under many conditions, so plain sampling "
+                             "draws 217 graded queries from only 67 reactions")
     parser.add_argument("--ord-only", action="store_true",
                         help="exclude USPTO candidates, reproducing the pre-USPTO index")
     parser.add_argument("--out", type=pathlib.Path, default=None,
@@ -280,7 +284,7 @@ def main() -> int:
     labels = load_labels()
     with pool().connection() as conn:
         indexed = conn.execute(
-            """SELECT i.reaction_id, i.campaign_id, r.reactants, r.products
+            """SELECT i.reaction_id, i.campaign_id, i.reaction_key, r.reactants, r.products
                FROM ord_reaction_index i JOIN ord_reactions r USING (reaction_id)
                WHERE i.reaction_id = ANY(%s)""",
             (list(labels),),
@@ -315,6 +319,11 @@ def main() -> int:
     for reaction_type in sorted(pools):
         ids = sorted(pools[reaction_type])
         rng.shuffle(ids)
+        if args.distinct:
+            #  After the shuffle, so the default mode draws exactly as before.
+            seen: set = set()
+            ids = [i for i in ids if rows_by_id[i]["reaction_key"] not in seen
+                   and not seen.add(rows_by_id[i]["reaction_key"])]
         chosen.extend(ids[: args.per_type])
     rng.shuffle(chosen)
     chosen = chosen[: args.queries]
@@ -357,6 +366,7 @@ def main() -> int:
             "min_campaigns_per_type": MIN_CAMPAIGNS_PER_TYPE,
             "ord_only": args.ord_only,
             "grader": args.grader,
+            "distinct": args.distinct,
         },
         "leakage_controlled": {},
         "uncontrolled_same_campaign_allowed": {},

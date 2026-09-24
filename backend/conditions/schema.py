@@ -219,7 +219,7 @@ class Precedent:
     transformation_similarity: Optional[float] = None
     # Measured using Morgan fingerprints of the reactants. Range: 0.0 - 1.0.
     substrate_similarity: Optional[float] = None
-    # The weighted combined score used for ranking (currently 0.30 * trans + 0.70 * sub).
+    # The weighted combined score used for ranking (currently 0.40 * trans + 0.60 * sub).
     combined_similarity: Optional[float] = None
     
     # Deprecated fallback similarity, retains value of combined_similarity for backwards compat.

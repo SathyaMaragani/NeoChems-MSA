@@ -137,8 +137,11 @@ genuinely take part in a reaction.
    between reactants and products rather than on how alike the molecules look:
 
    ```
-   score = 0.30 × transformation_similarity + 0.70 × substrate_similarity
+   score = 0.40 × transformation_similarity + 0.60 × substrate_similarity
    ```
+
+   (0.30/0.70 until USPTO joined the index; see the borylation section of
+   [retrieval-benchmark.md](retrieval-benchmark.md).)
 
    Those weights, the `0.4` prefilter threshold and the `0.20` similarity floor
    are all **measured**, not guessed — see
