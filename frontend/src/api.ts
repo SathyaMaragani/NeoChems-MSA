@@ -198,8 +198,11 @@ export type Provenance = {
   year?: number
   doi?: string
   patent_number?: string
-  /** Only present when the source supplied one; never built from a DOI. */
+  /** Supplied by the source, or built from a verified patent number. Never
+   *  built from a DOI. */
   url?: string
+  /** 'source' or 'derived_from_patent_number'. */
+  url_origin?: string
   license?: string
 }
 
@@ -285,7 +288,7 @@ export type Reaction = {
 }
 
 export type AssessmentSummary = 
-  | 'STRONG_SUPPORT'
+  | 'STRONGLY_SUPPORTED'
   | 'SUPPORTED'
   | 'REVIEW_REQUIRED'
   | 'INSUFFICIENT_EVIDENCE'

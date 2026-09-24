@@ -314,10 +314,12 @@ serving the old behaviour — this was learned the hard way, twice.
 - **On the arrow**: evidence badge, then reagents / catalyst / solvent /
   temperature / time. Ranges shown as `82.5 C (observed 20–200 C)`.
 - **Expandable panel**: the aggregate, then every precedent with its own
-  conditions, similarity, dataset, DOI and — *only when the source record
-  supplied one* — a clickable link. A DOI is never turned into a URL by string
-  concatenation; a DOI-only record renders "No link supplied by the source
-  record; DOI shown exactly as recorded."
+  conditions, similarity, dataset, DOI, patent number and a clickable link —
+  either one the source record supplied, or, for patent precedents, a Google
+  Patents link built from the verified patent number and labelled "link built
+  from the patent number" (see data-provenance.md §1b). A DOI is never turned
+  into a URL by string concatenation; a DOI-only record renders "No link
+  supplied by the source record; DOI shown exactly as recorded."
 - **Route header**: the coverage strip with all four counts and the caveat that
   coverage plays no part in whether a route is solved.
 - **Template occurrence** is surfaced in the reaction detail, labelled "how many

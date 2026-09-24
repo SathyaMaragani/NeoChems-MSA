@@ -78,6 +78,9 @@ class Provenance:
     patent_number: Optional[str] = None
     example_number: Optional[str] = None
     url: Optional[str] = None
+    #  "source" when the record supplied the link; "derived_from_patent_number"
+    #  when it was built from a verified patent number. Never derived from a DOI.
+    url_origin: Optional[str] = None
     reaction_identifier: Optional[str] = None
     source_text_reference: Optional[str] = None
     retrieved_at: Optional[str] = None

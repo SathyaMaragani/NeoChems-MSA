@@ -27,7 +27,7 @@ def set_service(service: Optional[RetrosynthesisService], error: Optional[str] =
 
 class PlanRequest(BaseModel):
     smiles: str = Field(..., description="Target molecule as SMILES")
-    top_n: int = Field(5, ge=1, le=25, description="Max solved routes to return")
+    top_n: int = Field(10, ge=1, le=25, description="Max solved routes to return")
     iteration_limit: int = Field(
         DEFAULT_ITERATION_LIMIT,
         ge=1,

@@ -234,3 +234,34 @@ def chemical(
         equivalents=equivalents,
         original_text=original_text or name or smiles,
     )
+
+
+#  --- patent links ---------------------------------------------------------
+
+#  At most 8 digits, so an 11-digit application number can never match; the
+#  optional trailing kind code (A, B1, B2) is accepted and dropped.
+_US_GRANT = re.compile(r"^US0*(\d{4,8})(?:[A-Z]\d?)?$")
+_US_APPLICATION = re.compile(r"^US\d{11}A\d$")
+
+
+def patent_url(patent_number: str | None) -> Optional[str]:
+    """A Google Patents link built from a US patent number, or None.
+
+    This is the only URL the evidence layer constructs, and it is deterministic
+    rather than guessed: a real patent number maps to exactly one record. Both
+    forms were checked against the live site - "US3930836" resolves, while the
+    zero-padded "US03930836" that USPTO extractions use returns 404, so the
+    padding is stripped. The kind code (A, B1, B2) is dropped even when the
+    source supplies one: the kind-free URL resolves for every grant checked,
+    while a kept kind code can 404 ("US6168655A" does; "US6168655" resolves).
+
+    Anything that is not a recognisable US grant or application number gets no
+    link. A DOI never does.
+    """
+    number = (patent_number or "").strip().upper()
+    grant = _US_GRANT.match(number)
+    if grant:
+        return f"https://patents.google.com/patent/US{int(grant.group(1))}"
+    if _US_APPLICATION.match(number):
+        return f"https://patents.google.com/patent/{number}"
+    return None

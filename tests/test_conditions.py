@@ -923,3 +923,52 @@ def test_reaction_centre_of_a_non_reaction_is_empty_not_invented():
 
     nothing = normalize([ASPIRIN], [ASPIRIN])
     assert reaction_centre(nothing) == ("", 0)
+
+
+
+# --------------------------------------------------------------------------
+# patent links
+# --------------------------------------------------------------------------
+
+
+def test_patent_url_strips_zero_padding_without_guessing_a_kind_code():
+    from backend.conditions.extract import patent_url
+
+    #  "US03930836" is how the USPTO extraction writes it; that form 404s.
+    assert patent_url("US03930836") == "https://patents.google.com/patent/US3930836"
+    assert patent_url("US06000000") == "https://patents.google.com/patent/US6000000"
+    #  Grants from 2001 on carry a kind code; it is dropped, because the
+    #  kind-coded "US6168655A" 404s while the kind-free URL resolves.
+    assert patent_url("US07842696B2") == "https://patents.google.com/patent/US7842696"
+    assert patent_url("US06168655A") == "https://patents.google.com/patent/US6168655"
+    assert patent_url("US20010000011A1") == (
+        "https://patents.google.com/patent/US20010000011A1")
+
+
+def test_only_recognisable_patent_numbers_get_a_link():
+    from backend.conditions.extract import patent_url
+
+    for value in (None, "", "EP1234567", "US12", "10.1038/s41557",
+                  "https://doi.org/10.1038/s41557", "WO2010000001"):
+        assert patent_url(value) is None, value
+
+
+def test_a_derived_patent_link_is_labelled_as_derived():
+    row = ord_row()
+    row["provenance"] = {
+        "source_type": "patent", "source_id": "US03930836",
+        "patent_number": "US03930836", "title": "2-Bromoethyl ethanesulfonate",
+        "year": 1976, "url": "https://patents.google.com/patent/US3930836",
+        "url_origin": "derived_from_patent_number", "license": "CC0-1.0",
+    }
+    prov = provider()._provenance(row).to_dict()
+    assert prov["url_origin"] == "derived_from_patent_number"
+    assert prov["patent_number"] == "US03930836"
+    assert prov["title"] == "2-Bromoethyl ethanesulfonate"
+    assert prov["year"] == 1976
+    assert "doi" not in prov
+
+
+def test_a_record_supplied_url_is_labelled_as_from_the_source():
+    prov = provider()._provenance(ord_row()).to_dict()
+    assert prov["url_origin"] == "source"

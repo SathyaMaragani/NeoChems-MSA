@@ -81,8 +81,10 @@ class OrdProvider(LiteratureProvider):
     #: does not exist until an rdkit function is touched, and the exception was
     #: swallowed), so every cached v2 "unavailable" may be wrong.
     #: v6: migration to V2.2 transformation-keyed hybrid retrieval.
-    version = "6"
-    display_name = "Open Reaction Database (indexed subset)"
+    #: v7: kind-coded patent numbers (US07842696B2, 72% of USPTO rows) now get
+    #: links; evidence cached under v6 carries those precedents without one.
+    version = "7"
+    display_name = "Open Reaction Database + USPTO patent reactions (indexed)"
 
     def __init__(self, pool_factory=None) -> None:
         #  Injected so tests can run against a stub without a database.
@@ -150,6 +152,20 @@ class OrdProvider(LiteratureProvider):
             self._available = False
         self._checked_at = now
         return self._available
+
+    @property
+    def licenses(self) -> dict[str, str]:
+        """Licence per ingested dataset name, so the API reports every licence
+        the served evidence actually carries."""
+        try:
+            rows = self._query(
+                "SELECT DISTINCT license, dataset_id FROM ord_ingest_log ORDER BY license")
+        except Exception:
+            return {}
+        return {r["license"]: ("USPTO patent grants (Lowe)"
+                               if r["dataset_id"].startswith("uspto")
+                               else "Open Reaction Database")
+                for r in rows}
 
     @property
     def record_count(self) -> Optional[int]:
@@ -232,11 +248,16 @@ class OrdProvider(LiteratureProvider):
             source_id=raw.get("source_id") or row["reaction_id"],
             dataset_name=raw.get("dataset_name"),
             dataset_version=row.get("dataset_version"),
+            title=raw.get("title"),
+            year=raw.get("year"),
             doi=raw.get("doi"),
             patent_number=raw.get("patent_number"),
             #  Carried only when the record supplied one. A DOI is never turned
             #  into a URL here: that would manufacture a link we never verified.
             url=raw.get("url"),
+            #  A record-supplied URL has no origin tag; only a link built from a
+            #  patent number carries one, so the UI can say so.
+            url_origin=raw.get("url_origin") or ("source" if raw.get("url") else None),
             reaction_identifier=raw.get("reaction_identifier"),
             license=raw.get("license"),
             retrieved_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),

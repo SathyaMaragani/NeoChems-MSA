@@ -72,7 +72,10 @@ def main() -> int:
         print("  schema applied")
 
         rows = conn.execute(
-            "SELECT reaction_id FROM ord_reactions"
+            #  Incremental: a new source adds millions of rows, and re-deriving
+            #  fingerprints for everything already indexed would waste hours.
+            "SELECT r.reaction_id FROM ord_reactions r WHERE NOT EXISTS "
+            "(SELECT 1 FROM ord_reaction_index i WHERE i.reaction_id = r.reaction_id)"
             + (" LIMIT %s" if args.limit else ""),
             (args.limit,) if args.limit else (),
         ).fetchall()
@@ -103,10 +106,21 @@ def main() -> int:
                   f"  (skipped {skipped})")
     print(f"  fingerprints done: {inserted} rows, {skipped} unparseable")
 
-    #  Pass 2: the reaction centre, which needs RDKit in Python.
+    #  Pass 2: the reaction centre, which needs RDKit in Python. Selected from
+    #  the index itself, not from `ids`: a run that died here has already
+    #  inserted every row, so on resume `ids` is empty while centres are still
+    #  missing. The ~1% of reactions with no centre at all are retried each run
+    #  (~20 s at 2M rows) rather than tracked.
+    with pool().connection() as conn:
+        pending = [r["reaction_id"] for r in conn.execute(
+            "SELECT reaction_id FROM ord_reaction_index WHERE centre_hash IS NULL"
+            + (" LIMIT %s" if args.limit else ""),
+            (args.limit,) if args.limit else (),
+        ).fetchall()]
+    print(f"  {len(pending)} reactions without a centre")
     centres = 0
-    for start in range(0, len(ids), BATCH):
-        chunk = ids[start:start + BATCH]
+    for start in range(0, len(pending), BATCH):
+        chunk = pending[start:start + BATCH]
         with pool().connection() as conn:
             records = conn.execute(
                 "SELECT reaction_id, reactants, products FROM ord_reactions "
@@ -129,7 +143,7 @@ def main() -> int:
                 centres += len(updates)
             conn.commit()
         if (start // BATCH) % 10 == 0:
-            print(f"    centres {min(start + BATCH, len(ids))}/{len(ids)}")
+            print(f"    centres {min(start + BATCH, len(pending))}/{len(pending)}")
     print(f"  reaction centres: {centres}")
 
     #  Pass 3: campaign / class metadata, for benchmark splitting and display.

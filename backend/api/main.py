@@ -61,7 +61,9 @@ app = FastAPI(title="RamChems", version="0.1.0", lifespan=lifespan)
 # cannot ride the user's cookies - keep it that way unless auth is added.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    # Any private-LAN host on the Vite port, so a second laptop on the same
+    # Wi-Fi works without re-listing a DHCP address every time it changes.
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+):5173",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

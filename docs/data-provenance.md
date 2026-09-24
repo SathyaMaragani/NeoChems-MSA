@@ -120,11 +120,11 @@ itself (`SELECT count(*) FILTER (WHERE …) FROM ord_reactions`):
 
 Every one of the 216,681 rows carries `license = CC-BY-SA-4.0`.
 
-**Patent coverage is zero**, and that is a significant gap for pharmaceutical
-work: a large share of medicinal and process chemistry is disclosed in patents
-rather than papers. Closing it means adding a patent-derived provider (Lowe's
-USPTO extraction is the obvious first candidate) — one new
-`LiteratureProvider` subclass, no change to anything else.
+**ORD's own patent coverage is zero** — a significant gap for pharmaceutical
+work, since much medicinal and process chemistry is disclosed in patents. It is
+now filled by Lowe's USPTO grant extraction (§1b), ingested into the same index
+so every step can link to the patents that report it. Patent **applications**
+are still missing.
 
 The 54% with a DOI but no URL is exactly the case where a link must **not** be
 synthesised — see §6.
@@ -150,6 +150,55 @@ would grow the table, not the process.
 `dataset_version` is the sha256 of the source parquet, truncated to 16 chars. It
 is part of the evidence cache key, so re-ingesting a refreshed dataset retires
 the cached evidence derived from the old one instead of letting it look current.
+
+---
+
+## 1b. USPTO patent grants (Lowe) — reaction precedents ✅ **CC0**
+
+| | |
+| --- | --- |
+| Source | "Chemical reactions from US patents (1976-Sep2016)", Daniel Lowe, figshare DOI `10.6084/m9.figshare.5104873` |
+| **Licence** | **CC0** — public-domain dedication, no attribution or ShareAlike obligation. Commercially clean. |
+| File | `1976_Sep2016_USPTOgrants_cml.7z`, 640,780,116 bytes, md5 `d9f5602a2d656d1bc964f77165500ce0` (verified against figshare) |
+| Contents | 2,460 weekly grant files, 13.6 GB uncompressed CML |
+| Ingest | `scripts/ingest_uspto.py` → `ord_reactions` rows with `dataset_id = uspto-grants-1976-2016` |
+| Not yet ingested | the patent **applications** files — figshare returned HTTP 403 to both automated and browser downloads |
+
+### How it was acquired
+
+Figshare refuses automated downloads (403 on the download link, connection
+resets on the API endpoint). The request was **not** disguised as a browser to
+get past that. The grants file was downloaded manually in a browser and then
+verified by size and md5 before use.
+
+### Extraction rules
+
+Kept deliberately conservative, so a missing value never becomes an invented one:
+
+- **Reactants** are the reaction-SMILES components carrying atom maps. Unmapped
+  species in the reactant slot (solvents, bases) are recorded as conditions.
+- **One row per (patent, reaction).** The same reaction in three patents is
+  three rows, so a retrosynthesis step links to every patent that reports it.
+- **Temperature** only when every temperature in the procedure is the same exact
+  number. Ranges, "~N", "<N" and "room temperature" are left out.
+- **Time** is the longest single stated step duration.
+- **Yield** is the text-mined yield as written. The extractor's calculated
+  yield is excluded — it is derived from masses and can exceed 100%.
+- **Roles** (solvent, catalyst) are the source's own and are not reclassified,
+  even where they look wrong.
+
+### Patent links
+
+This is the **one** place the evidence layer builds a URL. A US patent number
+maps to exactly one record, so `https://patents.google.com/patent/US3930836` is
+deterministic, not guessed. Checked against the live site: the kind-free form
+resolves, and the zero-padded `US03930836` form used by the extraction returns
+404, so padding is stripped. The kind code (`B1`, `B2`) that grants from 2001
+on carry is **dropped**, never kept or appended: the kind-free URL resolves for
+every grant checked, while a kept code can 404 (`US6168655A` does). Reissues
+(`USRE…`) and statutory registrations (`USH…`), 5,547 rows, get no link. Every such link is
+stored with `url_origin = derived_from_patent_number`, and the UI says "link
+built from the patent number". A DOI is still never turned into a link.
 
 ---
 
@@ -227,7 +276,7 @@ These are implemented and tested, not aspirations.
 URLs, reaction examples, yields, temperatures, catalysts, solvents, or any other
 experimental condition.
 
-**A URL is never constructed from a DOI.** `https://doi.org/<doi>` would render
+**A URL is never constructed from a DOI.** The single exception to building any URL is a patent link derived from a verified US patent number — see §1b. `https://doi.org/<doi>` would render
 as an authoritative-looking link to something nobody verified — and 54% of the
 index has a DOI with no recorded URL. A link is emitted only when the source
 record supplied one; otherwise the UI says "No link supplied by the source

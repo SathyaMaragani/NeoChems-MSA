@@ -114,7 +114,7 @@ export default function App() {
 
   // per-workspace options
   const [iterationLimit, setIterationLimit] = useState(100)
-  const [topRoutes, setTopRoutes] = useState(5)
+  const [topRoutes, setTopRoutes] = useState(10)
   const [includeConditions, setIncludeConditions] = useState(true)
   const [evidence, setEvidence] = useState<EvidenceStatus | null>(null)
   const [searchMode, setSearchMode] = useState<SearchOutcome['mode']>('similarity')

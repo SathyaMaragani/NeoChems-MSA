@@ -104,7 +104,7 @@ def evidence_status() -> dict:
             if not service.predictor.available
             else None,
         },
-        "data_license": "CC-BY-SA-4.0 (Open Reaction Database)"
+        "data_license": "; ".join(f"{lic} ({label})" for lic, label in provider.licenses.items())
         if provider.name == "ord"
         else None,
         "evidence_levels": [

@@ -16,6 +16,7 @@ import type {
   ReactionEvidence,
   Representation,
   RouteNode,
+  ValidationStatus,
 } from '../api'
 
 /* ---------------- reaction condition evidence ---------------- */
@@ -305,9 +306,14 @@ function PrecedentItem({ p }: { p: Precedent }) {
              never turned into a link by string-building - that produces an
              authoritative-looking link to the wrong paper. */}
         {prov?.url ? (
-          <a href={prov.url} target="_blank" rel="noreferrer noopener">
-            Open source ↗
-          </a>
+          <span>
+            <a href={prov.url} target="_blank" rel="noreferrer noopener">
+              {prov.patent_number ? `View patent ${prov.patent_number} ↗` : 'Open source ↗'}
+            </a>
+            {prov.url_origin === 'derived_from_patent_number' && (
+              <span className="muted small"> · link built from the patent number</span>
+            )}
+          </span>
         ) : (
           prov?.doi && (
             <span className="muted small">
@@ -404,7 +410,7 @@ function EvidenceDetail({ evidence }: { evidence: ReactionEvidence }) {
 
         <p className="evidence-provenance muted small">
           Searched: {evidence.provider === 'ord'
-            ? 'Open Reaction Database (indexed subset)'
+            ? 'Open Reaction Database + USPTO patents (indexed)'
             : (evidence.provider ?? 'unknown source')}
           {evidence.dataset_version && ` · dataset ${evidence.dataset_version.slice(0, 12)}`}
           {evidence.cached && ' · served from cache'}
@@ -534,6 +540,119 @@ function RouteAssessmentPanel({ assessment, steps }: { assessment: import('../ap
   )
 }
 
+/** One horizontal reading of a route: SM → intermediate → … → target.
+ *
+ *  `toSteps` returns steps leaves-first, so each step's product is normally the
+ *  next step's main reactant; that shared molecule is drawn once. Anything else
+ *  the step consumes is a SIDE INPUT shown on the arrow, which is also how a
+ *  convergent branch appears - the chain stays readable rather than pretending
+ *  every route is linear.
+ */
+type ChainItem =
+  | { kind: 'mol'; smiles: string; role: string; inStock?: boolean }
+  | { kind: 'arrow'; index: number; step: Step; extras: string[] }
+
+type Step = { reaction: Reaction; product: RouteNode }
+
+function toChain(steps: Step[]): ChainItem[] {
+  const items: ChainItem[] = []
+  let previous: string | null = null
+  steps.forEach((step, index) => {
+    const reactants = step.reaction.reactants
+    const main =
+      (previous !== null
+        ? reactants.find((r) => r.molecule_smiles === previous)
+        : undefined) ?? reactants[0]
+    if (previous === null && main) {
+      items.push({
+        kind: 'mol',
+        smiles: main.molecule_smiles,
+        role: 'Starting material',
+        inStock: main.is_stock_available,
+      })
+    }
+    items.push({
+      kind: 'arrow',
+      index,
+      step,
+      extras: reactants.filter((r) => r !== main).map((r) => r.molecule_smiles),
+    })
+    items.push({
+      kind: 'mol',
+      smiles: step.product.molecule_smiles,
+      role: index === steps.length - 1 ? 'Target' : 'Intermediate',
+    })
+    previous = step.product.molecule_smiles
+  })
+  return items
+}
+
+function StepDetail({ step, index, total }: { step: Step; index: number; total: number }) {
+  return (
+    <section className="rstep">
+      <div className="rstep-label">
+        Step {index + 1} of {total}
+      </div>
+      <div className="rstep-flow">
+        <div className="rstep-group">
+          {step.reaction.reactants.map((reactant) => (
+            <MoleculeCard
+              key={reactant.molecule_smiles}
+              smiles={reactant.molecule_smiles}
+              role="Reactant"
+              inStock={reactant.is_stock_available}
+              large
+            />
+          ))}
+        </div>
+        <div className={`rstep-arrow${step.reaction.evidence ? ' with-conditions' : ''}`}>
+          <ArrowRightIcon />
+          <span>
+            template {step.reaction.template_used ?? '—'}
+            {step.reaction.score != null && ` · policy ${step.reaction.score.toFixed(4)}`}
+          </span>
+          <ReactionAssessment reaction={step.reaction} />
+        </div>
+        <div className="rstep-group">
+          <MoleculeCard smiles={step.product.molecule_smiles} role="Product" large />
+        </div>
+      </div>
+      <details className="rstep-detail">
+        <summary>Reaction detail</summary>
+        <dl>
+          <dt>Reaction SMILES</dt>
+          <dd>
+            <code>{step.reaction.reaction_smiles}</code>
+          </dd>
+          {step.reaction.template_smarts && (
+            <>
+              <dt>Template SMARTS</dt>
+              <dd>
+                <code>{step.reaction.template_smarts}</code>
+              </dd>
+            </>
+          )}
+          {step.reaction.template_occurrence != null && (
+            <>
+              <dt>Template library occurrence</dt>
+              <dd>
+                {step.reaction.template_occurrence.toLocaleString()}
+                <span className="muted small">
+                  {' '}
+                  — how many times this template appears in the USPTO template
+                  library. A library count, not a count of successful experiments,
+                  a yield or a probability.
+                </span>
+              </dd>
+            </>
+          )}
+        </dl>
+      </details>
+      {step.reaction.evidence && <EvidenceDetail evidence={step.reaction.evidence} />}
+    </section>
+  )
+}
+
 export function RetroResults({
   plan,
   evidenceStatus,
@@ -543,9 +662,10 @@ export function RetroResults({
    *  its size instead of implying the literature was searched. */
   evidenceStatus?: EvidenceStatus | null
 }) {
-  const [selected, setSelected] = useState(0)
-  const route = plan.routes[selected]
-  const steps = route ? toSteps(route.tree) : []
+  //  Which route's per-step detail is open. The chains themselves are always
+  //  visible, so comparing routes never costs a click.
+  const [openRoute, setOpenRoute] = useState<number | null>(null)
+  const [sort, setSort] = useState<'score' | 'steps' | 'evidence'>('score')
 
   if (!plan.is_solved) {
     return (
@@ -567,177 +687,208 @@ export function RetroResults({
     )
   }
 
+  //  Everything a route card shows is derived once, so sorting and the "fewest
+  //  steps" / "most evidence" tags agree with the numbers in the panel.
+  const summaries = plan.routes.map((route, index) => {
+    const steps = toSteps(route.tree)
+    const evidence = route.evidence_summary
+    return {
+      route,
+      index,
+      steps,
+      chain: toChain(steps),
+      matched: evidence
+        ? evidence.steps_with_experimental_evidence + evidence.steps_with_similar_evidence
+        : 0,
+      weakestPolicy: steps.length
+        ? Math.min(...steps.map((s) => s.reaction.score ?? 1))
+        : null,
+      startingMaterials: leavesOf(route.tree).length,
+    }
+  })
+  const fewestSteps = Math.min(...summaries.map((s) => s.route.number_of_reactions))
+  const mostMatched = Math.max(...summaries.map((s) => s.matched))
+  const ordered = [...summaries].sort((a, b) =>
+    sort === 'steps'
+      ? a.route.number_of_reactions - b.route.number_of_reactions
+      : sort === 'evidence'
+        ? b.matched - a.matched
+        : (b.route.state_score ?? 0) - (a.route.state_score ?? 0),
+  )
+
   return (
     <>
-      <div className="route-rail">
-        {plan.routes.map((r, index) => (
-          <button
-            key={r.route_id}
-            className={`route-tile${index === selected ? ' active' : ''}`}
-            onClick={() => setSelected(index)}
-          >
-            <span className="route-tile-name">Route {index + 1}</span>
-            <span className="route-tile-tag">
-              {index === 0 ? 'Highest score' : 'Alternative'}
-            </span>
-            <span className="route-tile-score">
-              {r.state_score?.toFixed(4)} · {r.number_of_reactions} step
-              {r.number_of_reactions === 1 ? '' : 's'}
-            </span>
-          </button>
-        ))}
+      <div className="route-toolbar">
+        <div className="route-toolbar-facts">
+          <strong>{plan.routes.length} routes</strong>
+          <span>{plan.iterations_used} iterations</span>
+          <span>{plan.search_time_seconds}s search</span>
+          <span>USPTO templates</span>
+        </div>
+        <label className="route-sort">
+          <span>Sort by</span>
+          <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+            <option value="score">State score (high → low)</option>
+            <option value="steps">Total steps (fewest first)</option>
+            <option value="evidence">Steps matched to evidence</option>
+          </select>
+        </label>
       </div>
 
-      {route && (
-        <article className="route-panel">
-          <header>
-            <div>
-              <h2>Route {selected + 1}</h2>
-              <span className={`badge ${selected === 0 ? 'best' : 'alt'}`}>
-                {selected === 0 ? '✓ Highest score' : 'Alternative'}
-              </span>
-            </div>
-            <dl className="route-metrics">
-              <div>
-                <dt>State score</dt>
-                <dd>{route.state_score?.toFixed(4) ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>Steps</dt>
-                <dd>{route.number_of_reactions}</dd>
-              </div>
-              <div>
-                <dt>Starting materials</dt>
-                <dd>{leavesOf(route.tree).length} · all purchasable</dd>
-              </div>
-              <div>
-                <dt>Weakest policy</dt>
-                <dd>
-                  {steps.length
-                    ? Math.min(...steps.map((s) => s.reaction.score ?? 1)).toFixed(4)
-                    : '—'}
-                </dd>
-              </div>
-            </dl>
-          </header>
-
-          {route.assessment && (
-            <div style={{ padding: '0 24px 24px' }}>
-              <RouteAssessmentPanel assessment={route.assessment} steps={steps} />
-            </div>
-          )}
-
-          {route.evidence_summary && (
-            <EvidenceCoverage
-              summary={route.evidence_summary}
-              status={evidenceStatus}
-            />
-          )}
-
-          <div className="route-steps-full">
-            {steps.map((step, index) => (
-              <section className="rstep" key={`${step.reaction.reaction_smiles}-${index}`}>
-                <div className="rstep-label">
-                  Step {index + 1} of {steps.length}
+      <div className="route-list">
+        {ordered.map((entry) => {
+          const { route, index, steps, chain } = entry
+          const open = openRoute === index
+          const score = route.state_score ?? 0
+          return (
+            <article className="route-card" key={route.route_id}>
+              <header className="route-card-head">
+                <div className="route-card-id">
+                  <h3>Route {index + 1}</h3>
+                  {index === 0 && <span className="tag-chip best">Highest score</span>}
+                  {route.number_of_reactions === fewestSteps && (
+                    <span className="tag-chip">Fewest steps</span>
+                  )}
+                  {entry.matched > 0 && entry.matched === mostMatched && (
+                    <span className="tag-chip">Most evidence</span>
+                  )}
                 </div>
-                <div className="rstep-flow">
-                  <div className="rstep-group">
-                    {step.reaction.reactants.map((reactant) => (
-                      <MoleculeCard
-                        key={reactant.molecule_smiles}
-                        smiles={reactant.molecule_smiles}
-                        role="Reactant"
-                        inStock={reactant.is_stock_available}
-                        large
+                <button
+                  type="button"
+                  className="route-expand"
+                  aria-expanded={open}
+                  onClick={() => setOpenRoute(open ? null : index)}
+                >
+                  {open
+                    ? 'Hide step detail'
+                    : `Step detail, conditions & evidence (${steps.length} step${
+                        steps.length === 1 ? '' : 's'
+                      })`}
+                </button>
+              </header>
+
+              <div className="route-body">
+                <div className="route-chain">
+                  {chain.map((item, position) =>
+                    item.kind === 'mol' ? (
+                      <div className="chain-node" key={`m${position}`}>
+                        <MoleculeCard
+                          smiles={item.smiles}
+                          role={item.role}
+                          inStock={item.inStock}
+                        />
+                      </div>
+                    ) : (
+                      <div className="chain-arrow" key={`a${position}`}>
+                        {item.extras.length > 0 && (
+                          <div className="chain-extras">
+                            {item.extras.map((smiles) => (
+                              <code key={smiles} title={smiles}>
+                                + {smiles}
+                              </code>
+                            ))}
+                          </div>
+                        )}
+                        <ArrowRightIcon />
+                        <span className="chain-meta">
+                          step {item.index + 1}
+                          {item.step.reaction.score != null &&
+                            ` · policy ${item.step.reaction.score.toFixed(3)}`}
+                        </span>
+                        {item.step.reaction.evidence && (
+                          <EvidenceBadge
+                            level={item.step.reaction.evidence.evidence_level}
+                          />
+                        )}
+                      </div>
+                    ),
+                  )}
+                </div>
+
+                <dl className="route-metrics-panel">
+                  <div className="metric">
+                    <dt>State score</dt>
+                    <dd>{route.state_score?.toFixed(4) ?? '—'}</dd>
+                  </div>
+                  {/*  The bar is the score itself (0-1), not a rating we invented. */}
+                  <div className="score-bar" aria-hidden="true">
+                    <span style={{ width: `${Math.max(0, Math.min(1, score)) * 100}%` }} />
+                  </div>
+                  <div className="metric">
+                    <dt>Total steps</dt>
+                    <dd>{route.number_of_reactions}</dd>
+                  </div>
+                  <div className="metric">
+                    <dt>Starting materials</dt>
+                    <dd>{entry.startingMaterials} · all purchasable</dd>
+                  </div>
+                  <div className="metric">
+                    <dt>Weakest policy</dt>
+                    <dd>{entry.weakestPolicy?.toFixed(4) ?? '—'}</dd>
+                  </div>
+                  {route.evidence_summary && (
+                    <div className="metric">
+                      <dt>Steps matched</dt>
+                      <dd>
+                        {entry.matched}
+                        <span className="metric-of">/{route.evidence_summary.steps}</span>
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+
+              {open && (
+                <div className="route-detail">
+                  {route.assessment && (
+                    <div className="route-detail-block">
+                      <RouteAssessmentPanel assessment={route.assessment} steps={steps} />
+                    </div>
+                  )}
+                  {route.evidence_summary && (
+                    <EvidenceCoverage
+                      summary={route.evidence_summary}
+                      status={evidenceStatus}
+                    />
+                  )}
+                  <div className="route-steps-full">
+                    {steps.map((step, stepIndex) => (
+                      <StepDetail
+                        key={`${step.reaction.reaction_smiles}-${stepIndex}`}
+                        step={step}
+                        index={stepIndex}
+                        total={steps.length}
                       />
                     ))}
                   </div>
-                  <div
-                    className={`rstep-arrow${step.reaction.evidence ? ' with-conditions' : ''}`}
-                  >
-                    <ArrowRightIcon />
-                    <span>
-                      template {step.reaction.template_used ?? '—'}
-                      {step.reaction.score != null &&
-                        ` · policy ${step.reaction.score.toFixed(4)}`}
-                    </span>
-                    <ReactionAssessment reaction={step.reaction} />
-                  </div>
-                  <div className="rstep-group">
-                    <MoleculeCard
-                      smiles={step.product.molecule_smiles}
-                      role="Product"
-                      large
-                    />
-                  </div>
+                  {route.image_png_base64 && (
+                    <details className="route-overview">
+                      <summary>Full route diagram</summary>
+                      <div className="route-overview-img">
+                        <img
+                          src={`data:image/png;base64,${route.image_png_base64}`}
+                          alt={`Route ${index + 1} overview`}
+                        />
+                      </div>
+                    </details>
+                  )}
                 </div>
-                <details className="rstep-detail">
-                  <summary>Reaction detail</summary>
-                  <dl>
-                    <dt>Reaction SMILES</dt>
-                    <dd>
-                      <code>{step.reaction.reaction_smiles}</code>
-                    </dd>
-                    {step.reaction.template_smarts && (
-                      <>
-                        <dt>Template SMARTS</dt>
-                        <dd>
-                          <code>{step.reaction.template_smarts}</code>
-                        </dd>
-                      </>
-                    )}
-                    {step.reaction.template_occurrence != null && (
-                      <>
-                        <dt>Template library occurrence</dt>
-                        <dd>
-                          {step.reaction.template_occurrence.toLocaleString()}
-                          <span className="muted small">
-                            {' '}
-                            — how many times this template appears in the USPTO
-                            template library. A library count, not a count of
-                            successful experiments, a yield or a probability.
-                          </span>
-                        </dd>
-                      </>
-                    )}
-                  </dl>
-                </details>
-                {step.reaction.evidence && (
-                  <EvidenceDetail evidence={step.reaction.evidence} />
-                )}
-              </section>
-            ))}
-          </div>
+              )}
+            </article>
+          )
+        })}
+      </div>
 
-          <footer className="route-footnote">
-            State score measures how completely the route bottoms out in purchasable
-            material, and policy is the expansion model&apos;s probability for that
-            template. Neither is a yield, cost or feasibility prediction — this build
-            has no model for those.
-            {route.evidence_summary && (
-              <>
-                {' '}
-                Conditions shown on a step come from experimental records matched
-                against that step after the search — the engine did not take the
-                step from them. They are observations, not a recommended
-                procedure, and have not been validated for your substrates.
-              </>
-            )}
-          </footer>
-
-          {route.image_png_base64 && (
-            <details className="route-overview">
-              <summary>Full route diagram</summary>
-              <div className="route-overview-img">
-                <img
-                  src={`data:image/png;base64,${route.image_png_base64}`}
-                  alt={`Route ${selected + 1} overview`}
-                />
-              </div>
-            </details>
-          )}
-        </article>
-      )}
+      <footer className="route-footnote">
+        State score measures how completely a route bottoms out in purchasable
+        material, and policy is the expansion model&apos;s probability for that
+        template. Neither is a yield, cost or feasibility prediction — this build
+        has no model for those, so no route carries a yield, cost or confidence
+        figure. A chain shows each step&apos;s main line; other reactants,
+        including convergent branches, appear as side inputs on the arrow.
+        Conditions come from experimental records matched against a step after
+        the search — the engine did not take the step from them.
+      </footer>
     </>
   )
 }

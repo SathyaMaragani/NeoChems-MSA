@@ -53,7 +53,7 @@ def test_status_names_the_provider_and_its_licence(client):
     if body["provider"] == "ord":
         #  The licence travels with the data. A consumer cannot use the evidence
         #  without being told the terms - ORD is ShareAlike, which matters.
-        assert body["data_license"] == "CC-BY-SA-4.0 (Open Reaction Database)"
+        assert "CC-BY-SA-4.0 (Open Reaction Database)" in body["data_license"]
 
 
 def test_status_admits_that_no_prediction_model_is_configured(client):

@@ -168,7 +168,8 @@ experiments — or says ⚪ when nothing is known.
 - [x] ~~**Retrieval benchmark for the evidence layer**~~ — done; see [retrieval-benchmark.md](retrieval-benchmark.md).
 - [x] ~~**Transformation-keyed stage 1**~~ — Done in V2.2. Stored the reaction difference fingerprint in Postgres with its own index, so retrieval is keyed on the transformation rather than on product-molecule similarity.
 - [ ] **Forward reaction validation** — run each proposed step through a forward model and flag steps whose predicted product is not the target. Directly addresses the class of problem the ibuprofen route exposed.
-- [ ] **Patent evidence provider** — ORD carries 0% patent provenance, and much of medicinal/process chemistry lives in patents. One new `LiteratureProvider` subclass.
+- [x] **Patent evidence** — USPTO patent grants 1976–Sep 2016 (Lowe, CC0) ingested beside ORD; precedents show the patent number and a Google Patents link built from it. See data-provenance.md §1b.
+- [ ] **USPTO patent applications 2001–2016** — figshare blocks the download (HTTP 403, including in a browser); retry or find a mirror.
 - [ ] **Toxicity (Tox21)** — the substantive next capability. ~7,800 molecules, 12 assays, classification not regression, ~5% actives. Breaks several assumptions this codebase was built on, in useful ways.
 - [ ] **A real reliability signal for QSAR** — conformal prediction or per-tree variance. Structural distance demonstrably isn't one.
 

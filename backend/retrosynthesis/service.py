@@ -327,7 +327,7 @@ class RetrosynthesisService:
     def plan_routes(
         self,
         smiles: str,
-        top_n: int = 5,
+        top_n: int = 10,
         iteration_limit: int = DEFAULT_ITERATION_LIMIT,
         include_images: bool = False,
         include_conditions: bool = False,
