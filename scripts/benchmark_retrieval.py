@@ -46,6 +46,7 @@ import statistics
 import sys
 import time
 from collections import Counter, defaultdict
+from typing import Optional
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
@@ -54,6 +55,7 @@ from backend.conditions.normalize import normalize  # noqa: E402
 from backend.conditions.ord_provider import TRANSFORMATION_WEIGHT  # noqa: E402
 from backend.conditions.service import MIN_SIMILARITY  # noqa: E402
 from backend.molrepr.search import pool  # noqa: E402
+from reaction_rules import UNGRADED, classify  # noqa: E402  (scripts/, benchmark only)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LABELS = ROOT / "data/external/ord/benchmark_labels.csv"
@@ -98,14 +100,16 @@ def _ndcg(hits: list[bool], relevant_available: int) -> float:
     return (_dcg(hits[:TOP_K]) / ideal) if ideal else 0.0
 
 
-def score_query(ranked_ids: list[str], truth: str, labels: dict,
+def score_query(ranked_ids: list[str], truth: str, type_of: dict,
                 relevant_available: int, candidates: int,
-                candidate_recall: float, top1_unjudged: bool = False) -> dict:
-    hits = [labels[rid]["reaction_type"] == truth for rid in ranked_ids]
+                candidate_recall: Optional[float], top1_unjudged: bool = False) -> dict:
+    hits = [type_of[rid] == truth for rid in ranked_ids]
     top = hits[:TOP_K]
     first = next((i for i, hit in enumerate(hits) if hit), None)
     return {
+        "truth": truth,
         "top1_unjudged": float(top1_unjudged),
+        "top1_uspto": bool(ranked_ids) and ranked_ids[0].startswith("uspto-"),
         "returned": len(ranked_ids),
         "candidates": candidates,
         "candidate_recall": candidate_recall,
@@ -121,8 +125,11 @@ def score_query(ranked_ids: list[str], truth: str, labels: dict,
 
 def aggregate(rows: list[dict]) -> dict:
     def mean(key, subset=None):
-        values = [r[key] for r in (rows if subset is None else subset)]
-        return round(statistics.mean(values), 4) if values else 0.0
+        values = [r[key] for r in (rows if subset is None else subset)
+                  if r[key] is not None]
+        #  None only for candidate_recall under rule grading, which has no
+        #  denominator short of labelling every row in the index.
+        return round(statistics.mean(values), 4) if values else None
 
     reachable = [r for r in rows if r["had_relevant"]]
     answered = [r for r in rows if r["returned"] > 0]
@@ -143,21 +150,45 @@ def aggregate(rows: list[dict]) -> dict:
         "candidate_recall": mean("candidate_recall"),
         "silent_rate": round(1 - len(answered) / len(rows), 4) if rows else 0.0,
         "mean_candidates": mean("candidates"),
-        #  Every metric above grades LABELLED candidates only. Production ranks
-        #  all of them, so this is the share of queries where production's top
-        #  answer is one the benchmark cannot grade (USPTO, or unlabelled ORD).
+        #  Human grading covers labelled ORD candidates only, while production
+        #  ranks all of them: this is the share of queries where production's
+        #  top answer cannot be graded. Under rule grading, every candidate is
+        #  graded and this counts top answers no rule recognises.
         "top1_unjudged": mean("top1_unjudged"),
+        #  Is a patent precedent shown first as often right as an ORD one?
+        "top1_uspto_share": round(sum(r["top1_uspto"] for r in answered) / len(answered), 4)
+        if answered else None,
+        "precision_at_1_when_top1_uspto": mean("p1", [r for r in answered if r["top1_uspto"]]),
+        "precision_at_1_when_top1_ord": mean("p1", [r for r in answered if not r["top1_uspto"]]),
+        "precision_at_1_by_type": {
+            t: {"queries": len(sub), "p1": mean("p1", sub)}
+            for t in sorted({r["truth"] for r in rows})
+            for sub in [[r for r in rows if r["truth"] == t]]},
     }
+
+
+def label_by_rule(type_of: dict, reaction_ids: list[str]) -> None:
+    """Rule-label candidates not seen before, ORD and USPTO alike."""
+    missing = [rid for rid in reaction_ids if rid not in type_of]
+    if not missing:
+        return
+    with pool().connection() as conn:
+        rows = conn.execute(
+            "SELECT reaction_id, reactants, products FROM ord_reactions "
+            "WHERE reaction_id = ANY(%s)", (missing,)).fetchall()
+    for row in rows:
+        type_of[row["reaction_id"]] = classify(list(row["reactants"]),
+                                               list(row["products"]))
 
 
 # ------------------------------------------------------------ evaluation ----
 
 
-def evaluate(strategy_name: str, queries: list[dict], labels: dict,
+def evaluate(strategy_name: str, queries: list[dict], type_of: dict,
              reachable_totals: dict, *, exclude_campaign: bool,
              transformation_weight: float, floor: float,
              thresholds: dict, limit: int,
-             ord_only: bool = False) -> tuple[dict, list[float]]:
+             ord_only: bool = False, rules: bool = False) -> tuple[dict, list[float]]:
     strategy = retrieval.STRATEGIES[strategy_name]
     rows: list[dict] = []
     latencies: list[float] = []
@@ -185,23 +216,27 @@ def evaluate(strategy_name: str, queries: list[dict], labels: dict,
             candidates = []
         latencies.append((time.perf_counter() - started) * 1000)
 
-        judged = [c for c in candidates if c.reaction_id in labels]
-        truth = query["type"]
-        relevant_available = sum(
-            1 for c in judged if labels[c.reaction_id]["reaction_type"] == truth)
-        total_reachable = reachable_totals[truth] - (
-            query["campaign_size"] if exclude_campaign else 1)
-        recall = (relevant_available / total_reachable) if total_reachable > 0 else 0.0
+        if rules:
+            label_by_rule(type_of, [c.reaction_id for c in candidates])
+        judged = [c for c in candidates if c.reaction_id in type_of]
+        truth = query["truth"]
+        relevant_available = sum(1 for c in judged if type_of[c.reaction_id] == truth)
+        if rules:
+            recall = None
+        else:
+            total_reachable = reachable_totals[truth] - (
+                query["campaign_size"] if exclude_campaign else 1)
+            recall = min(1.0, relevant_available / total_reachable) if total_reachable > 0 else 0.0
 
         scored = sorted(((c.combined(transformation_weight), c) for c in judged),
                         key=lambda pair: -pair[0])
         ranked = [c.reaction_id for value, c in scored if value >= floor]
         best = max(candidates, key=lambda c: c.combined(transformation_weight),
                    default=None)
-        unjudged = (best is not None and best.reaction_id not in labels
+        unjudged = (best is not None and type_of.get(best.reaction_id) is None
                     and best.combined(transformation_weight) >= floor)
-        rows.append(score_query(ranked, truth, labels, relevant_available,
-                                len(judged), min(1.0, recall), unjudged))
+        rows.append(score_query(ranked, truth, type_of, relevant_available,
+                                len(judged), recall, unjudged))
 
     return aggregate(rows), latencies
 
@@ -222,6 +257,10 @@ def main() -> int:
     parser.add_argument("--weight", type=float, default=TRANSFORMATION_WEIGHT)
     parser.add_argument("--floor", type=float, default=MIN_SIMILARITY)
     parser.add_argument("--strategies", default=",".join(STRATEGY_ORDER))
+    parser.add_argument("--grader", choices=["human", "rules"], default="human",
+                        help="human: ORD REACTION_TYPE labels, which leave USPTO "
+                             "ungraded. rules: scripts/reaction_rules.py labels "
+                             "query and every candidate alike")
     parser.add_argument("--ord-only", action="store_true",
                         help="exclude USPTO candidates, reproducing the pre-USPTO index")
     parser.add_argument("--out", type=pathlib.Path, default=None,
@@ -290,9 +329,20 @@ def main() -> int:
         queries.append({
             "id": rid, "reaction": reaction,
             "type": labels[rid]["reaction_type"],
+            "truth": (classify(list(row["reactants"]), list(row["products"]))
+                      if args.grader == "rules" else labels[rid]["reaction_type"]),
             "campaign": labels[rid]["campaign_id"],
             "campaign_size": campaign_counts[labels[rid]["campaign_id"]],
         })
+    if args.grader == "rules":
+        #  A query no rule recognises has nothing to be graded against.
+        before = len(queries)
+        queries = [q for q in queries
+                   if q["truth"] is not None and q["truth"] not in UNGRADED]
+        print(f"rule grading: {before - len(queries)} of {before} queries have "
+              "no rule label, or one that is loose on USPTO, and are dropped")
+    type_of = ({} if args.grader == "rules"
+               else {rid: row["reaction_type"] for rid, row in labels.items()})
     print(f"split={args.split}: {len(queries)} queries, "
           f"{len({q['type'] for q in queries})} types, "
           f"{len({q['campaign'] for q in queries})} campaigns\n")
@@ -306,6 +356,7 @@ def main() -> int:
             "transformation_weight": args.weight, "floor": args.floor,
             "min_campaigns_per_type": MIN_CAMPAIGNS_PER_TYPE,
             "ord_only": args.ord_only,
+            "grader": args.grader,
         },
         "leakage_controlled": {},
         "uncontrolled_same_campaign_allowed": {},
@@ -323,10 +374,10 @@ def main() -> int:
               f"{'silent':>8}{'cands':>7}{'top1-unj':>9}")
         for name in wanted:
             metrics, latencies = evaluate(
-                name, queries, labels, population,
+                name, queries, type_of, population,
                 exclude_campaign=exclude, transformation_weight=args.weight,
                 floor=args.floor, thresholds=thresholds, limit=args.limit,
-                ord_only=args.ord_only)
+                ord_only=args.ord_only, rules=args.grader == "rules")
             report[section][name] = metrics
             if exclude:
                 report["latency_ms"][name] = {
@@ -339,7 +390,7 @@ def main() -> int:
                   f"{metrics['ndcg_at_10']:>7.3f}"
                   f"{metrics['precision_at_1_when_relevant_available']:>9.3f}"
                   f"{metrics['queries_offered_any_relevant']:>9.3f}"
-                  f"{metrics['candidate_recall']:>10.3f}"
+                  f"{metrics['candidate_recall'] or float('nan'):>10.3f}"
                   f"{metrics['silent_rate']:>8.3f}{metrics['mean_candidates']:>7.0f}"
                   f"{metrics['top1_unjudged']:>9.3f}")
         print()

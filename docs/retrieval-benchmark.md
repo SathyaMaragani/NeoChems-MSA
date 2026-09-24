@@ -176,29 +176,72 @@ excluded (`--ord-only`) and included:
   rather than assumed: P@1 fell to 0.405, 56.0% offered, silent rose to 27.3%,
   and the pass ran ~3× slower, because an `ORDER BY` must fetch and score
   every match instead of stopping at the cap. Not shipped.
-- **The benchmark is now blind to most of what production shows.** It grades
+- **Human grading is blind to most of what production shows.** It grades
   ORD's labels only, and USPTO carries none, so in 55.5% of queries the
   precedent a user sees first cannot be graded. "Silent" here means silent on
   graded candidates; production answers some of those queries with USPTO rows.
+  The rule grader below closes that gap.
 - **Latency is acceptable.** Hybrid retrieval p50 334 ms / p95 658 ms per step
   (was 63 / 172 ms). End to end, a plan with conditions costs 0.2–0.5 s more
   per step when cold (aspirin 2.6 s → 7.6 s over 16 steps) and nothing extra
   when cached.
 
-Until USPTO candidates can be graded, whether the patent data helps or hurts
-precedent *quality* is unmeasured.
+### Graded by rule, the patents help
+
+To grade what production actually shows, `--grader rules` labels the query and
+**every** candidate, ORD and USPTO alike, with one function
+([scripts/reaction_rules.py](../scripts/reaction_rules.py)) that reads the
+bond change: a C–B bond consumed with an aryl halide is a Suzuki, a C–F bond
+gained on an unchanged skeleton is a fluorination, and so on. One grader on
+both corpora makes the comparison fair; rules rather than people make it a
+proxy, so it was checked twice before use:
+
+- **Against the human labels on ORD** (`python scripts/reaction_rules.py`):
+  precision 98.5–100% for 11 of the 13 rule groups. SUZUKI (77%) and BORYLATION
+  (76%) are lower for reasons that are not rule errors. The SUZUKI misses are
+  Fe-, photo- and Cu-catalysed boron couplings, which make the same bond with
+  another catalyst. The BORYLATION misses are real Miyaura borylations inside
+  Suzuki-labelled campaigns. Types defined by catalyst or conditions (PD/RH
+  COUPLING, CH ACTIVATION, LEWIS ACID, PHOTOCHEMISTRY) and NEGISHI (ORD never
+  lists the zinc reagent) get no rule.
+- **By hand on 39 sampled USPTO rows**: 11 groups label the chemistry right.
+  CARBONYLATION and OXIDATION do not. On ORD they are exact, but on patents they
+  also match lithiation/DMF formylations and mCPBA N-oxidations, so their
+  queries are dropped (`reaction_rules.UNGRADED`).
+
+That leaves 217 of the 400 queries (14 types, 62 campaigns), leakage-controlled:
+
+| Metric | ORD only | ORD + USPTO |
+| --- | --- | --- |
+| Precision@1 | 0.539 | **0.700** |
+| Precision@5 | 0.536 | 0.676 |
+| MRR | 0.570 | 0.714 |
+| Queries offered ≥1 relevant candidate | 93.1% | 100% |
+| P@1 when production's top-1 is USPTO / ORD | – | 0.727 / 0.663 |
+
+The gain comes from chemistry ORD barely covers: fluorination 0.05 → 0.84,
+hydrogenation 0.09 → 0.73, Heck 0.00 → 0.56, cyanation 0.11 → 0.44. **One
+regression: borylation 0.90 → 0.58** (19 queries), which has not been
+diagnosed. Stille is flat at 0.30.
+
+The human-graded recall slip above is real but is outweighed. These
+rule-graded numbers are not comparable to the human-graded ones earlier in this
+document: they use a different grader and a different query subset.
 
 ```bash
-python scripts/benchmark_retrieval.py --split validation --strategies hybrid --ord-only --out ord_only.json
-python scripts/benchmark_retrieval.py --split validation --strategies hybrid --out full.json
+python scripts/reaction_rules.py        # grader vs human labels
+python scripts/benchmark_retrieval.py --split validation --strategies hybrid --grader rules --ord-only --out ord_only.json
+python scripts/benchmark_retrieval.py --split validation --strategies hybrid --grader rules --out full.json
 ```
 
 ---
 
 ## What this does NOT establish
 
-- **Whether USPTO precedents are relevant.** They carry no reaction-type
-  label, so the benchmark excludes them from grading. See above.
+- **That rule-graded relevance is what a chemist would call relevant.** The
+  rules read the bond change and never the catalyst, so a Cu-catalysed boron
+  coupling "is" a Suzuki. Validated against ORD's labels and spot-checked on
+  39 USPTO rows, not audited at scale.
 
 - **Anything outside industrial HTE chemistry.** The labelled subset is
   couplings, alkylations and hydrogenations from two campaigns. These numbers
