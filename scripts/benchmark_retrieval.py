@@ -100,11 +100,12 @@ def _ndcg(hits: list[bool], relevant_available: int) -> float:
 
 def score_query(ranked_ids: list[str], truth: str, labels: dict,
                 relevant_available: int, candidates: int,
-                candidate_recall: float) -> dict:
+                candidate_recall: float, top1_unjudged: bool = False) -> dict:
     hits = [labels[rid]["reaction_type"] == truth for rid in ranked_ids]
     top = hits[:TOP_K]
     first = next((i for i, hit in enumerate(hits) if hit), None)
     return {
+        "top1_unjudged": float(top1_unjudged),
         "returned": len(ranked_ids),
         "candidates": candidates,
         "candidate_recall": candidate_recall,
@@ -142,6 +143,10 @@ def aggregate(rows: list[dict]) -> dict:
         "candidate_recall": mean("candidate_recall"),
         "silent_rate": round(1 - len(answered) / len(rows), 4) if rows else 0.0,
         "mean_candidates": mean("candidates"),
+        #  Every metric above grades LABELLED candidates only. Production ranks
+        #  all of them, so this is the share of queries where production's top
+        #  answer is one the benchmark cannot grade (USPTO, or unlabelled ORD).
+        "top1_unjudged": mean("top1_unjudged"),
     }
 
 
@@ -151,7 +156,8 @@ def aggregate(rows: list[dict]) -> dict:
 def evaluate(strategy_name: str, queries: list[dict], labels: dict,
              reachable_totals: dict, *, exclude_campaign: bool,
              transformation_weight: float, floor: float,
-             thresholds: dict, limit: int) -> tuple[dict, list[float]]:
+             thresholds: dict, limit: int,
+             ord_only: bool = False) -> tuple[dict, list[float]]:
     strategy = retrieval.STRATEGIES[strategy_name]
     rows: list[dict] = []
     latencies: list[float] = []
@@ -163,6 +169,9 @@ def evaluate(strategy_name: str, queries: list[dict], labels: dict,
         if exclude_campaign:
             extra_sql = " AND (i.campaign_id IS NULL OR i.campaign_id <> %s)"
             extra_params = (query["campaign"],)
+        if ord_only:
+            extra_sql += " AND i.dataset_id NOT LIKE %s"
+            extra_params += ("uspto%",)
 
         started = time.perf_counter()
         try:
@@ -187,8 +196,12 @@ def evaluate(strategy_name: str, queries: list[dict], labels: dict,
         scored = sorted(((c.combined(transformation_weight), c) for c in judged),
                         key=lambda pair: -pair[0])
         ranked = [c.reaction_id for value, c in scored if value >= floor]
+        best = max(candidates, key=lambda c: c.combined(transformation_weight),
+                   default=None)
+        unjudged = (best is not None and best.reaction_id not in labels
+                    and best.combined(transformation_weight) >= floor)
         rows.append(score_query(ranked, truth, labels, relevant_available,
-                                len(judged), min(1.0, recall)))
+                                len(judged), min(1.0, recall), unjudged))
 
     return aggregate(rows), latencies
 
@@ -209,6 +222,10 @@ def main() -> int:
     parser.add_argument("--weight", type=float, default=TRANSFORMATION_WEIGHT)
     parser.add_argument("--floor", type=float, default=MIN_SIMILARITY)
     parser.add_argument("--strategies", default=",".join(STRATEGY_ORDER))
+    parser.add_argument("--ord-only", action="store_true",
+                        help="exclude USPTO candidates, reproducing the pre-USPTO index")
+    parser.add_argument("--out", type=pathlib.Path, default=None,
+                        help="results file (default docs/retrieval-benchmark-<split>.json)")
     args = parser.parse_args()
 
     #  Per-strategy thresholds; hybrid is keyed on the transformation branch.
@@ -288,6 +305,7 @@ def main() -> int:
             "thresholds": thresholds, "limit": args.limit,
             "transformation_weight": args.weight, "floor": args.floor,
             "min_campaigns_per_type": MIN_CAMPAIGNS_PER_TYPE,
+            "ord_only": args.ord_only,
         },
         "leakage_controlled": {},
         "uncontrolled_same_campaign_allowed": {},
@@ -302,12 +320,13 @@ def main() -> int:
               else "UNCONTROLLED (same-campaign allowed - the V2.1 measurement)")
         print(f"{'strategy':<15}{'P@1':>7}{'P@5':>7}{'P@10':>7}{'R@10':>7}{'MRR':>7}"
               f"{'nDCG':>7}{'P@1|rel':>9}{'any-rel':>9}{'cand-rec':>10}"
-              f"{'silent':>8}{'cands':>7}")
+              f"{'silent':>8}{'cands':>7}{'top1-unj':>9}")
         for name in wanted:
             metrics, latencies = evaluate(
                 name, queries, labels, population,
                 exclude_campaign=exclude, transformation_weight=args.weight,
-                floor=args.floor, thresholds=thresholds, limit=args.limit)
+                floor=args.floor, thresholds=thresholds, limit=args.limit,
+                ord_only=args.ord_only)
             report[section][name] = metrics
             if exclude:
                 report["latency_ms"][name] = {
@@ -321,10 +340,11 @@ def main() -> int:
                   f"{metrics['precision_at_1_when_relevant_available']:>9.3f}"
                   f"{metrics['queries_offered_any_relevant']:>9.3f}"
                   f"{metrics['candidate_recall']:>10.3f}"
-                  f"{metrics['silent_rate']:>8.3f}{metrics['mean_candidates']:>7.0f}")
+                  f"{metrics['silent_rate']:>8.3f}{metrics['mean_candidates']:>7.0f}"
+                  f"{metrics['top1_unjudged']:>9.3f}")
         print()
 
-    out = RESULTS.with_name(f"retrieval-benchmark-{args.split}.json")
+    out = args.out or RESULTS.with_name(f"retrieval-benchmark-{args.split}.json")
     out.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print("latency p50/p95 ms:", json.dumps(report["latency_ms"]))
     print(f"written to {out}")

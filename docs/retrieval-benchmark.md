@@ -155,7 +155,50 @@ its own milestone — deliberately **not** done here.
 
 ---
 
+## After USPTO: the corpus grew 9× (Sep 2026)
+
+Adding 1.77M USPTO grant reactions took the index from 216k to 1.98M rows, on
+settings tuned for ORD alone. Same code, same 400 validation queries (21 types,
+109 campaigns, seed 0), leakage-controlled, hybrid, with USPTO candidates
+excluded (`--ord-only`) and included:
+
+| Metric | ORD only | ORD + USPTO |
+| --- | --- | --- |
+| Precision@1 | 0.427 | 0.420 |
+| Queries offered ≥1 relevant candidate | 63.2% | 58.3% |
+| Candidate recall | 0.127 | 0.103 |
+| Silent (on graded candidates) | 19.3% | 24.0% |
+| Production top-1 is ungraded | 38.0% | **55.5%** |
+
+- **Ranking held; recall slipped.** Each hybrid branch keeps an *unordered*
+  1000 rows, and USPTO rows now fill slots that relevant ORD rows used to reach.
+- **Ordering the branches by similarity does not fix it**, and it was measured
+  rather than assumed: P@1 fell to 0.405, 56.0% offered, silent rose to 27.3%,
+  and the pass ran ~3× slower, because an `ORDER BY` must fetch and score
+  every match instead of stopping at the cap. Not shipped.
+- **The benchmark is now blind to most of what production shows.** It grades
+  ORD's labels only, and USPTO carries none, so in 55.5% of queries the
+  precedent a user sees first cannot be graded. "Silent" here means silent on
+  graded candidates; production answers some of those queries with USPTO rows.
+- **Latency is acceptable.** Hybrid retrieval p50 334 ms / p95 658 ms per step
+  (was 63 / 172 ms). End to end, a plan with conditions costs 0.2–0.5 s more
+  per step when cold (aspirin 2.6 s → 7.6 s over 16 steps) and nothing extra
+  when cached.
+
+Until USPTO candidates can be graded, whether the patent data helps or hurts
+precedent *quality* is unmeasured.
+
+```bash
+python scripts/benchmark_retrieval.py --split validation --strategies hybrid --ord-only --out ord_only.json
+python scripts/benchmark_retrieval.py --split validation --strategies hybrid --out full.json
+```
+
+---
+
 ## What this does NOT establish
+
+- **Whether USPTO precedents are relevant.** They carry no reaction-type
+  label, so the benchmark excludes them from grading. See above.
 
 - **Anything outside industrial HTE chemistry.** The labelled subset is
   couplings, alkylations and hydrogenations from two campaigns. These numbers
