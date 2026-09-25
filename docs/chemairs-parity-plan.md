@@ -35,20 +35,35 @@ phase below has a number attached.
 
 | Capability | RamChems | Note |
 | --- | --- | --- |
-| Reaction corpus | 216,681 ORD reactions | ChemAIRS claims 73M literature + patent. **Their moat.** |
-| Route search | AiZynthFinder, public USPTO templates, MCTS at defaults | Does not solve **ibuprofen** at 100 iterations |
+| Reaction corpus | 1.98M: 216,681 ORD + 1.77M USPTO grants (US only, 1976–2016) | ChemAIRS claims 73M from 600+ journals and 13 patent offices. **Their moat.** |
+| Route search | AiZynthFinder, PaRoutes 2.0 USPTO model, MCTS, depth 10 | 93.4% solved on PaRoutes n1 (500), 38% on complex drugs; ibuprofen needs 500 iterations |
 | Known vs predicted labelling | Four evidence levels, full provenance | **Ahead of them.** Their deck shows two |
-| Condition search | ORD evidence, benchmarked, leakage-controlled | Thin coverage; V2.2 hybrid retrieval not yet in production |
+| Condition search | ORD + USPTO evidence, hybrid retrieval, benchmarked, leakage-controlled; SIMILAR floor calibrated at 0.40 | Direct precedent for only 7.2% of complex-drug route steps |
 | Forward step validation | Built, uncommitted quality | precision 0.91 / recall 0.46, 29% false positives, ~5 s per reaction |
-| Route metrics & filters | State score, step count | No difficulty, cost, cycle time, or sorting |
-| Hazard / toxicity flags | none | They ship 12 legend classes |
+| Route metrics & filters | State score, step count; sort by score, steps or evidence | No difficulty, cost, cycle time or linear steps |
+| Hazard / toxicity flags | none | They ship 14 legend icons, incl. chiral resolution and allergens |
 | SA score | none | Days of work |
 | Batch search, route import, manual disconnection, image input | none | Name → SMILES works |
 | Condition prediction, scale-up conditions | none | |
 | Process chemistry, impurity prediction, Bayesian optimisation | none | Each its own project |
 | Cost from vendors | none | ZINC gives purchasability, not price |
+| Predicted step yields | none | Shown on every AI-predicted step (e.g. 38%, 95%, 89%) |
+| Condition scoring | similarity + evidence level | Theirs adds yield, chemo- and regioselectivity %, a per-reagent AI score and risk/compatibility flags |
+| Route persistence | none; every search is recomputed | Their route cards carry creation dates (2022–2023): results are stored and reused |
 | Deployment, auth, ELN / inventory integration | none | Local only |
 | QSAR solubility with calibrated intervals | working | Not in their deck |
+
+**How to read their solve rate.** Their route screenshots often show every step
+as AI-predicted ("Prediction steps 5 of 5 total", every molecule marked
+unknown), so a ChemAIRS "solution" can have no precedent at all, and the
+60-target blind test judged proposed ideas, not verified routes. Our solve rate
+counts routes that end in purchasable stock and labels which steps have real
+precedent. The two numbers are not comparable until the same targets are run
+on both.
+
+Source for the ChemAIRS column: their 2026 sales deck ("ChemAIRS 2026 --
+Draft", Molecular Solutions), read 26 Sep 2026. It is marketing material with
+no per-target numbers.
 
 ---
 
