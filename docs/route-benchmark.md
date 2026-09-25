@@ -123,9 +123,7 @@ Three findings, each a Phase 1 lead:
 
 1. **The search budget costs 8 points of solve rate and 12 of top-5**, at ~5×
    the time. Which of the three differences matters (100 → 500 iterations,
-   depth 6 → 10, filter on → off) is unmeasured. That is the first Phase 1a
-   experiment, and an intermediate setting may capture most of the gain at
-   interactive speed.
+   depth 6 → 10, filter on → off) is measured below, in Phase 1a.
 2. **Route ordering loses a third of what the search finds.** Under the
    `paroutes` search, the API's order (solved routes by state score) reaches
    top-5 0.346, against 0.488 when the same routes are ranked by the Badowski
@@ -134,6 +132,49 @@ Three findings, each a Phase 1 lead:
 3. **Five-step routes stay at 6% whatever the budget.** More search does not
    reach them. That points at the model (Phase 1c, a template-free expansion
    model) rather than the settings.
+
+---
+
+## Phase 1a: which setting drives the gain
+
+One change at a time from `production`, same 500 targets, paired against the
+baseline (`+gained / −lost` targets). Results:
+`docs/route-benchmark-n1-ablation-<change>.json`.
+
+| Change | Solved | Top-5 | Paired solved | Paired top-5 | Median time |
+| --- | --- | --- | --- | --- | --- |
+| none (baseline) | 89.2% | 0.364 | | | 11.5 s |
+| depth 6 → 10 | **93.4%** | 0.366 | **+22 / −1** | +1 / −0 | 26.7 s |
+| iterations 100 → 500 (time limit lifted) | **94.0%** | **0.410** | **+24 / −0** | **+39 / −16** | 64.6 s |
+| filter off | 90.2% | 0.370 | +12 / −7 | +9 / −6 | 8.5 s |
+| ringbreaker beside uspto | 87.0% | 0.354 | +5 / −16 | +10 / −15 | 21.6 s |
+| all of `paroutes` | 97.4% | 0.488 | +41 / −0 | +65 / −3 | 54.3 s |
+
+```bash
+python scripts/benchmark_routes.py --set n1 --sample 500 --depth 10
+python scripts/benchmark_routes.py --set n1 --sample 500 --iterations 500 --time-limit 3600
+python scripts/benchmark_routes.py --set n1 --sample 500 --filter off
+python scripts/benchmark_routes.py --set n1 --sample 500 --ringbreaker
+```
+
+- **Depth is the solve-rate lever, not an accuracy one.** Four points more
+  targets solved, one lost, top-5 unchanged, at 2.3× the time.
+- **Iterations are the only accuracy lever** (+4.6 points top-5, +4.8 solved),
+  at 5.6× the time; 3.6% of searches would pass production's 120 s cap. The
+  API already accepts `iteration_limit` up to 500, so this is available to a
+  user who asks for it.
+- **The filter changes nothing measurable**, and is kept: it rejects infeasible
+  steps, which recovering the patent's route cannot see.
+- **Ringbreaker makes it worse at this budget**: 16 targets lost for 5 gained.
+  Two expansion policies split 100 iterations between them. The parity plan's
+  suggestion to run it alongside uspto is not supported here.
+- **Adopted: depth 10**, in `config.yml` since 25 Sep 2026 (+4 points solved
+  for ~2.3× the median search time). The baseline tables above ran at depth 6;
+  the `production` profile now reads its depth from `config.yml`.
+- **The two levers stack**, and they are not free: nothing here reaches the
+  `paroutes` result at interactive speed. The rest of its top-10 gain comes
+  from extracting every solved route and ranking them by Badowski score, which
+  the API does not do.
 
 ---
 

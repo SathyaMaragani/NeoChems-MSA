@@ -4,7 +4,12 @@
 # Re-fetch the referenced files with:
 #   download_public_data data/external/aizynthfinder
 #
-# MCTS search settings are left at AiZynthFinder defaults on purpose (not tuned yet).
+# Search settings are AiZynthFinder defaults except max_transforms, measured on
+# the route benchmark (docs/route-benchmark.md, Phase 1a): depth 6 -> 10 solves
+# 93.4% of PaRoutes n1 instead of 89.2% (22 targets gained, 1 lost) at ~2.3x the
+# median search time. Iterations stay per-request (API iteration_limit).
+search:
+  max_transforms: 10
 
 expansion:
   uspto:

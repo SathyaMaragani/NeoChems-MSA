@@ -134,7 +134,7 @@ quick-load button — and expect:
 | Action | Expected result |
 |---|---|
 | **Represent** | canonical SMILES `CC(=O)Oc1ccccc1C(=O)O`, InChIKey `BSYNRYMUTXBXSQ-UHFFFAOYSA-N`, MW 180.159 |
-| **Retrosynthesis** | solves in ~3 s → acetic anhydride + salicylic acid |
+| **Retrosynthesis** | solves in ~5 s → acetic anhydride + salicylic acid |
 | **Search → Similarity** | aspirin 1.0000, then benorilate 0.5128, salicylic acid 0.4483 |
 | `POST /predict/property` | solubility −2.19 log10(mol/L), plus an applicability flag |
 

@@ -91,6 +91,13 @@ The installed AiZynthFinder already offers `mcts`, `retrostar`, `dfpn`,
 iteration budgets. Run the `ringbreaker` policy (already downloaded) alongside
 `uspto` instead of leaving it idle.
 
+*Measured 25 Sep 2026 ([route-benchmark.md](route-benchmark.md), Phase 1a):*
+depth 6 → 10 adds 4 points of solve rate at 2.3× the time; 500 iterations add
+4.8 solved and 4.6 top-5 at 5.6× the time; the filter changes nothing
+measurable; ringbreaker alongside uspto is **worse** (16 targets lost, 5
+gained). **Depth 10 adopted as the production default.** Other search
+algorithms are not yet compared.
+
 **1b. Expand the building-block stock.** ZINC alone truncates routes early. Add
 Enamine / Mcule / eMolecules catalogues so "purchasable" matches what a chemist
 can actually buy.

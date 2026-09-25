@@ -48,7 +48,7 @@ AiZynthFinder MCTS route planning over USPTO-derived templates.
 **Working notes**
 
 - Runs on **CPU only** — AiZynthFinder 4.x uses ONNX Runtime, not TensorFlow. GPU untouched.
-- Aspirin solves in ~3 s; paracetamol ~2 s.
+- Aspirin and paracetamol solve in ~4–5 s at search depth 10 (~2–3 s at the old depth 6).
 - **Ibuprofen does not solve at the default 100 iterations.** Needs `iteration_limit: 500`, which takes ~95 s.
 - Searches are serialised behind a lock — concurrent requests queue.
 

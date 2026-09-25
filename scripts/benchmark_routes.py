@@ -14,8 +14,9 @@ TARGET SETS
         as served. No reference routes, so no accuracy - solve rate, steps, time.
 
 SEARCH PROFILES
-  production  what the API does: config.yml, 100 iterations, 120 s, depth 6,
-              filter policy on, up to 25 routes built.
+  production  what the API does: config.yml's search section (depth 10 since
+              25 Sep 2026; the recorded baseline ran at 6), 100 iterations,
+              120 s, filter policy on, up to 25 routes built.
   paroutes    PaRoutes' published MCTS config (their
               publication/aizynthfinder_config_mcts_n1.yml): 500 iterations,
               3600 s, depth 10, no filter, all solved routes. Reproducing their
@@ -53,8 +54,9 @@ CHEMBL = ROOT / "data/external/chembl/chembl_approved.tsv"
 TOP_KS = (1, 5, 10)
 
 PROFILES = {
-    "production": {"search": {"iteration_limit": 100, "time_limit": 120,
-                              "max_transforms": 6},
+    #  Depth comes from config.yml, so this profile cannot drift from what the
+    #  API serves.
+    "production": {"search": {"iteration_limit": 100, "time_limit": 120},
                    "filter": True},
     "paroutes": {"search": {"iteration_limit": 500, "time_limit": 3600,
                             "max_transforms": 10},
@@ -118,21 +120,21 @@ _finder = None
 _profile: dict = {}
 
 
-def _init(profile: str, stock: Optional[str]) -> None:
+def _init(settings: dict, stock: Optional[str]) -> None:
     """One AiZynthFinder per worker process, loaded once."""
     global _finder, _profile
     from aizynthfinder.aizynthfinder import AiZynthFinder
     from backend.retrosynthesis.service import DEFAULT_CONFIG, load_config
 
-    _profile = PROFILES[profile]
+    _profile = settings
     config = load_config(DEFAULT_CONFIG)
     if stock:
         config["stock"] = {"bench": stock}
-    config["search"] = dict(_profile["search"])
+    config["search"] = {**config.get("search", {}), **_profile["search"]}
     config["post_processing"] = dict(_profile.get("post_processing", {}))
     _finder = AiZynthFinder(configdict=config)
     _finder.stock.select("bench" if stock else "zinc")
-    _finder.expansion_policy.select("uspto")
+    _finder.expansion_policy.select(_profile.get("expansion", ["uspto"]))
     if _profile["filter"]:
         _finder.filter_policy.select("uspto")
     else:
@@ -291,6 +293,13 @@ def main() -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--set", choices=["n1", "hard"], required=True)
     parser.add_argument("--profile", choices=list(PROFILES), default="production")
+    #  One-at-a-time overrides on top of the profile, for ablations.
+    parser.add_argument("--iterations", type=int, default=None)
+    parser.add_argument("--depth", type=int, default=None, help="max_transforms")
+    parser.add_argument("--time-limit", type=int, default=None)
+    parser.add_argument("--filter", choices=["on", "off"], default=None)
+    parser.add_argument("--ringbreaker", action="store_true",
+                        help="expand with the ringbreaker policy beside uspto")
     parser.add_argument("--sample", type=int, default=None,
                         help="targets to run (default: 200 for n1, 60 for hard)")
     parser.add_argument("--seed", type=int, default=0)
@@ -308,12 +317,21 @@ def main() -> int:
         tasks, stock = n1_targets(args.sample or 200, args.seed)
     else:
         tasks, stock = hard_targets(args.sample or 60, args.seed), None
-    print(f"{len(tasks)} targets, profile {args.profile}, {args.workers} workers")
+    settings = json.loads(json.dumps(PROFILES[args.profile]))
+    for key, value in (("iteration_limit", args.iterations), ("max_transforms", args.depth),
+                       ("time_limit", args.time_limit)):
+        if value is not None:
+            settings["search"][key] = value
+    if args.filter:
+        settings["filter"] = args.filter == "on"
+    if args.ringbreaker:
+        settings["expansion"] = ["uspto", "ringbreaker"]
+    print(f"{len(tasks)} targets, {args.workers} workers, settings {settings}")
 
     started = time.time()
     records: list[dict] = []
     with Pool(args.workers, initializer=_init,
-              initargs=(args.profile, str(stock) if stock else None)) as pool:
+              initargs=(settings, str(stock) if stock else None)) as pool:
         for record in pool.imap_unordered(_search, tasks):
             records.append(record)
             if len(records) % 10 == 0 or len(records) == len(tasks):
@@ -336,7 +354,7 @@ def main() -> int:
         r.pop("smiles", None)
     out.write_text(json.dumps({
         "set": args.set, "profile": args.profile, "seed": args.seed,
-        "settings": PROFILES[args.profile], "wall_time_s": round(time.time() - started),
+        "settings": settings, "wall_time_s": round(time.time() - started),
         "summary": summary, "targets": records}, indent=1), encoding="utf-8")
     print(f"written to {out}")
     return 0
