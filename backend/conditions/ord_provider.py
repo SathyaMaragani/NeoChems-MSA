@@ -92,7 +92,9 @@ class OrdProvider(LiteratureProvider):
     #: v7: kind-coded patent numbers (US07842696B2, 72% of USPTO rows) now get
     #: links; evidence cached under v6 carries those precedents without one.
     #: v8: ranking weight 0.30 -> 0.40 transformation; similar precedents change.
-    version = "8"
+    #: v9: similarity floor 0.20 -> 0.40 (service.MIN_SIMILARITY); cached steps
+    #: may carry precedents, and a SIMILAR badge, the new floor would drop.
+    version = "9"
     display_name = "Open Reaction Database + USPTO patent reactions (indexed)"
 
     def __init__(self, pool_factory=None) -> None:

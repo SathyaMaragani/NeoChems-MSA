@@ -274,6 +274,38 @@ python scripts/benchmark_retrieval.py --split validation --strategies hybrid --g
 python scripts/benchmark_retrieval.py --split validation --strategies hybrid --grader rules --out full.json
 ```
 
+### The SIMILAR badge floor: 0.20 → 0.40
+
+At 0.20 every step in the 2M-reaction index found a "similar" precedent (100%
+of top routes on the complex-drug set), so the SIMILAR badge stopped telling
+the user anything. The floor was recalibrated with the rule grader on distinct
+reactions, leakage-controlled, by the precision of the top precedent among the
+steps that keep a badge:
+
+| Floor | Validation: badged | precision when badged | Test: badged | precision when badged |
+| --- | --- | --- | --- | --- |
+| 0.20 (was) | 100% | 0.71 | 100% | 0.72 |
+| 0.30 | 99% | 0.72 | | |
+| **0.40 (now)** | **82.5%** | **0.82** | **83%** | **0.81** |
+| 0.50 | 76% | 0.82 | | |
+| 0.60 | 52% | 0.89 | | |
+
+0.40 is the knee: precision flattens above it until 0.60, which removes half
+the badges. On test, 12 of the 17 badges it removes had a wrong top precedent.
+
+On real routes the effect is smaller: SIMILAR coverage of the complex-drug
+set's top-route steps goes 100% → 96%. Those steps are common chemistry
+(acylations, amide couplings, deprotections) with genuinely close precedents
+among 2M reactions, so the badge there is now mostly true rather than
+uninformative. The number that separates routes is still the direct share
+(7.2% of steps).
+A step below the floor now reports "no verified condition evidence", which is
+what the evidence supports.
+
+```bash
+python scripts/benchmark_retrieval.py --split test --strategies hybrid --distinct --grader rules --floor 0.4
+```
+
 ---
 
 ## What this does NOT establish

@@ -51,11 +51,18 @@ MAX_SIMILAR = 8
 #: floor at all those figures were 29% and 95%. The floor was discarding good
 #: results, not filtering bad ones.
 #:
-#: 0.20 rather than 0.00 is a product judgement, not a measurement: 0.00 scored
-#: marginally better on every metric, but it would also let a reaction scoring
-#: 0.05 be shown under the heading "SIMILAR EXPERIMENTAL PRECEDENT". A floor
-#: keeps that from happening; 0.20 captures most of the measured gain.
-MIN_SIMILARITY = 0.20
+#: 0.20 rather than 0.00 was a product judgement, not a measurement: 0.00
+#: scored marginally better on every metric, but it would also let a reaction
+#: scoring 0.05 be shown under the heading "SIMILAR EXPERIMENTAL PRECEDENT".
+#:
+#: 0.40 since USPTO grew the index to 2M reactions: at 0.20 EVERY step found a
+#: "similar" precedent, so the badge stopped carrying information. Calibrated on
+#: distinct reactions with the rule grader (docs/retrieval-benchmark.md), held-
+#: out test split: the top precedent of a badged step is the same reaction type
+#: 72% -> 81% of the time; 83% of steps keep the badge, and 12 of the 17 badges
+#: removed had a wrong top precedent. Above 0.40 precision flattens until 0.60,
+#: which drops half the badges.
+MIN_SIMILARITY = 0.40
 
 
 def _no_conditions_reason(count: int, kind: str) -> str:

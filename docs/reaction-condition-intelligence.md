@@ -143,7 +143,8 @@ genuinely take part in a reaction.
    (0.30/0.70 until USPTO joined the index; see the borylation section of
    [retrieval-benchmark.md](retrieval-benchmark.md).)
 
-   Those weights, the `0.4` prefilter threshold and the `0.20` similarity floor
+   Those weights, the `0.4` prefilter threshold and the similarity floor (`0.20`,
+   `0.40` since the USPTO index made every step "similar" at 0.20)
    are all **measured**, not guessed — see
    [retrieval-benchmark.md](retrieval-benchmark.md). The original guesses
    (`0.65/0.35`, threshold `0.5`, floor `0.35`) were wrong in every case.
