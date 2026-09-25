@@ -207,11 +207,21 @@ built from the patent number". A DOI is still never turned into a link.
 | | |
 | --- | --- |
 | Software | AiZynthFinder 4.4.1 (AstraZeneca) — **MIT** |
-| Models | Public USPTO expansion policy, filter policy, ringbreaker; ZINC stock |
+| Models | Public USPTO expansion policy, filter policy, ringbreaker (Zenodo record 7797465) and template libraries (Zenodo record 7341155, PaRoutes 2.0) — **CC-BY-4.0**, checked against the Zenodo metadata; ZINC stock |
 | Template source | Reactions extracted from US patents (public domain documents) |
-| On disk | 754 MB, `models/` |
+| On disk | 754 MB, `data/external/aizynthfinder/` |
 
-Commercially usable. The templates carry **no condition data** — five columns,
+Commercially usable **with attribution**: the models are CC-BY-4.0, not MIT,
+which covers the software only. Attribution: Genheden & Bjerrum, *PaRoutes*,
+Digital Discovery 2022, 1, 527, and the AiZynthFinder authors.
+
+The expansion model is PaRoutes 2.0's own: `uspto_templates.csv.gz` is
+byte-identical to their `uspto_unique_templates.csv.gz` (md5
+`e8fb29d4dcd54073658000e212b7845a`), and it was trained with the PaRoutes
+reference-route reactions removed. That is what makes the route benchmark
+(§2b) free of model leakage.
+
+The templates carry **no condition data** — five columns,
 of which `library_occurence` is a count of how often a template appears in the
 extracted library.
 
@@ -223,6 +233,22 @@ as `template_occurrence` and labelled in the UI accordingly.
 succeed. It is the expansion model's score for applying that template to that
 molecule. Surfaced as `score`, labelled "policy" in the UI, and the route
 footnote says so.
+
+---
+
+## 2b. PaRoutes 2.0 — route benchmark only ✅ **CC-BY-4.0**
+
+| | |
+| --- | --- |
+| Source | PaRoutes 2.0, Zenodo record 7341155 (AstraZeneca); Genheden & Bjerrum, Digital Discovery 2022, 1, 527 |
+| **Licence** | **CC-BY-4.0**: attribution required, no ShareAlike |
+| Files | `targets_n1.txt`, `stock_n1.txt`, `ref_routes_n1.json` in `data/external/paroutes/` (gitignored), md5-verified against Zenodo |
+| Used by | `scripts/benchmark_routes.py` only. Never served, never ingested. |
+
+The v1 InChI-key stock in PaRoutes' GitHub `publication/` folder is **not**
+used: it has 13,632 keys against v2's 13,431 SMILES. The stock is derived from
+v2's `stock_n1.txt` instead. Committed results identify targets by index
+(`n1-<i>`), not by structure.
 
 ---
 
@@ -318,7 +344,9 @@ a recommended procedure." No aggregate is ever labelled "optimal" or
 
 | Component | Licence | Commercial | Action needed |
 | --- | --- | --- | --- |
-| AiZynthFinder + USPTO models | MIT / public-domain source | ✅ | none |
+| AiZynthFinder software | MIT | ✅ | none |
+| AiZynthFinder USPTO models + templates | CC-BY-4.0 | ✅ | attribution |
+| PaRoutes (benchmark only) | CC-BY-4.0 | ✅ | attribution; not shipped |
 | **ORD reaction data** | **CC-BY-SA-4.0** (verified from `LICENSE`) | ⚠️ **with ShareAlike obligations** | **legal review, or swap the provider** |
 | `ord-schema` | Apache-2.0 | ✅ | none (ingest-only anyway) |
 | ChEMBL drug library | CC-BY-SA-3.0 | ⚠️ same class of issue | attribution; review |

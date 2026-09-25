@@ -15,7 +15,7 @@ evidence behind each step.
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Postgres](https://img.shields.io/badge/Postgres%20+%20RDKit-4169E1?logo=postgresql&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-234%20passing-success)
+![Tests](https://img.shields.io/badge/tests-252%20passing-success)
 ![Runs](https://img.shields.io/badge/runs-100%25%20local-informational)
 
 </div>
@@ -34,6 +34,7 @@ documented on its own; the table is the map.
 | **QSAR property prediction** | Aqueous solubility, with an applicability-domain flag rather than a bare number | [README](backend/qsar/README.md) |
 | **Reaction conditions + evidence** | Real conditions on the arrow, drawn from the Open Reaction Database and cited | [Docs](docs/reaction-condition-intelligence.md) |
 | **Retrieval benchmark** | Asks the uncomfortable question: is "similar" actually *relevant*? | [Docs](docs/retrieval-benchmark.md) |
+| **Route benchmark** | Solve rate and route recovery on PaRoutes and complex drugs; reproduces PaRoutes' published numbers | [Docs](docs/route-benchmark.md) |
 | **Frontend** | React + Vite, with Ketcher as the structure editor | [README](frontend/README.md) |
 
 Where the project is heading: [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -158,7 +159,7 @@ second datastore.
 
 ```bash
 conda activate retrosynth
-pytest                                  # 234 backend tests
+pytest                                  # 252 backend tests
 python scripts/test_retrosynthesis.py   # 3-molecule sanity check, exits 1 by design
 npx --prefix frontend tsc -b --noEmit frontend  # frontend typecheck
 ```

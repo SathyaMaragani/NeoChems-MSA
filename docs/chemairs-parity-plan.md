@@ -66,10 +66,13 @@ phase below has a number attached.
   be poor — that is the point of a baseline.
 
 ```
-EXIT  green test suite on record
-EXIT  baseline solve rate + route agreement on PaRoutes n1 and the hard set
-EXIT  same numbers for ChemAIRS, if a trial can be obtained
+EXIT  green test suite on record                                        DONE 25 Sep: 252 passing
+EXIT  baseline solve rate + route agreement on PaRoutes n1 and the hard set   DONE: route-benchmark.md
+EXIT  same numbers for ChemAIRS, if a trial can be obtained             open
 ```
+
+Postgres still stops whenever the Docker VM does (sleep, Docker Desktop
+quitting); `restart: unless-stopped` only brings it back once Docker is up.
 
 ---
 

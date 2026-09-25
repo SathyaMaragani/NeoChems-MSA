@@ -2,7 +2,7 @@
 
 Local drug discovery platform. Three backend modules + a React frontend, all running locally. No personal data, no deployment, no authentication.
 
-**Status as of 11 Sep 2026:** 4 modules built and working. 196 backend tests passing (100 pre-existing + 96 new). Frontend covers all four.
+**Status as of 25 Sep 2026:** 4 modules built and working. 252 backend tests passing. Frontend covers all four. Route benchmark baseline recorded: [route-benchmark.md](route-benchmark.md).
 
 ---
 

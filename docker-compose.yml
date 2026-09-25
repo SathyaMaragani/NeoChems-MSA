@@ -8,6 +8,9 @@ services:
     # Coupled to: requirements.txt (aizynthfinder -> rdkit). Move both together.
     image: informaticsmatters/rdkit-cartridge-debian:Release_2023_09_3
     container_name: ramchems_db
+    # Back up whenever Docker is. It cannot outlive the Docker VM itself: a
+    # sleep or Docker Desktop quitting still stops it until Docker restarts.
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ramchems
       POSTGRES_PASSWORD: ramchems
