@@ -129,6 +129,13 @@ Three findings, each a Phase 1 lead:
    top-5 0.346, against 0.488 when the same routes are ranked by the Badowski
    score. Recovering the patent's route is a proxy for "a route a chemist would
    run", not the definition of it, so this is a lead to test, not a verdict.
+   **Tested at production settings (26 Sep 2026) and refuted**: on 200 targets
+   at depth 10, re-ranking the solved routes by Badowski score gives top-1
+   0.205 against 0.245 for the current state-score order (2 targets gained,
+   10 lost) and top-5 0.360 against 0.365. The gain above needs the
+   all-routes `paroutes` search; with production's 25 routes it is gone. The
+   API order is unchanged. The harness keeps reporting both orders
+   (`rank_solved_badowski`).
 3. **Five-step routes stay at 6% whatever the budget.** More search does not
    reach them. That points at the model (Phase 1c, a template-free expansion
    model) rather than the settings.
@@ -171,6 +178,11 @@ python scripts/benchmark_routes.py --set n1 --sample 500 --ringbreaker
 - **Adopted: depth 10**, in `config.yml` since 25 Sep 2026 (+4 points solved
   for ~2.3× the median search time). The baseline tables above ran at depth 6;
   the `production` profile now reads its depth from `config.yml`.
+- **Ibuprofen is a search-budget problem.** Its industrial starting materials
+  (isobutylbenzene, 4-isobutylacetophenone) are in ZINC and the templates
+  exist: it solves at 500 iterations (just inside 120 s) and not at 100. The
+  UI's iteration limit already reaches it; no default change is justified by
+  one target.
 - **The two levers stack**, and they are not free: nothing here reaches the
   `paroutes` result at interactive speed. The rest of its top-10 gain comes
   from extracting every solved route and ranking them by Badowski score, which

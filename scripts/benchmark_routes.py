@@ -202,6 +202,10 @@ def _search(task: tuple[str, str, Optional[dict]]) -> dict:
             routes, order, route_ranks([scores[i] for i in order]), reference)
         record["rank_production"] = _found_at(
             routes, solved, list(range(1, len(solved) + 1)), reference)
+        #  Candidate API order: the same solved routes, re-ranked by Badowski.
+        by_cost = sorted(solved, key=scores.__getitem__)
+        record["rank_solved_badowski"] = _found_at(
+            routes, by_cost, list(range(1, len(by_cost) + 1)), reference)
     return record
 
 
@@ -240,7 +244,7 @@ def summarise(records: list[dict]) -> dict:
         "median_min_steps": median(r["min_steps"] for r in solved),
     }
     if records and "rank_paroutes" in records[0]:
-        for order in ("paroutes", "production"):
+        for order in ("paroutes", "production", "solved_badowski"):
             summary[f"top_k_{order}_ranking"] = {
                 f"top-{k}": rate(records, lambda r, k=k, o=order:
                                  r[f"rank_{o}"] is not None and r[f"rank_{o}"] <= k)
