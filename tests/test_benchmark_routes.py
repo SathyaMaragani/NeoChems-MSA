@@ -51,6 +51,16 @@ def test_the_reference_is_found_only_where_it_is_ranked():
     assert _found_at([ASPIRIN_ALT], [0], [1], ASPIRIN) is None
 
 
+def test_audit_walks_every_step_as_product_and_reactants():
+    from audit_route_steps import steps
+
+    assert list(steps(ASPIRIN)) == [
+        ("CC(=O)Oc1ccccc1C(=O)O", ["O=C(O)c1ccccc1O", "CC(=O)OC(C)=O"]),
+        ("O=C(O)c1ccccc1O", ["Oc1ccccc1", "O=C=O"]),
+    ]
+    assert list(steps(PHENOL)) == []
+
+
 def test_wilson_interval():
     low, high = wilson(24, 100)
     assert low < 0.24 < high
